@@ -17,7 +17,7 @@ public class FirebaseConfig {
         // Check if FirebaseApp is already initialized
         if (FirebaseApp.getApps().isEmpty()) {
             FileInputStream serviceAccount =
-                    new FileInputStream("E:\\grocery-shop-ee0ac-firebase-adminsdk-uf1wh-8ceefed6f3.json");
+                    new FileInputStream("grocery-shop-ee0ac-firebase-adminsdk-uf1wh-8ceefed6f3.json");
 
             FirebaseOptions options = new FirebaseOptions.Builder()
                     .setCredentials(GoogleCredentials.fromStream(serviceAccount))
