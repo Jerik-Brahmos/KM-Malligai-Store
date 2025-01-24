@@ -1,7 +1,6 @@
 package com.grocery.model;
 
 import jakarta.persistence.*;
-import lombok.AccessLevel;
 import lombok.AllArgsConstructor;
 import lombok.Data;
 import lombok.NoArgsConstructor;
@@ -10,7 +9,6 @@ import org.springframework.beans.factory.annotation.Value;
 // In Product.java
 @Entity
 @Data
-@NoArgsConstructor(access = AccessLevel.PUBLIC)
 @Table(name = "product")
 public class Product {
 
@@ -26,6 +24,10 @@ public class Product {
     @Column(nullable = false)
     private boolean isDeleted;
 
+
+    // No-arg constructor
+    public Product() {
+    }
 
     public Product(String name, double price, String category, String imageUrl, String grams) {
         this.name = name;
