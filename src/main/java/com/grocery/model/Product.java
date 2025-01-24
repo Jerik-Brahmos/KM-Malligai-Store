@@ -10,6 +10,7 @@ import org.springframework.beans.factory.annotation.Value;
 @Entity
 @Data
 @NoArgsConstructor
+@Table(name = "product")
 public class Product {
 
     @Id
