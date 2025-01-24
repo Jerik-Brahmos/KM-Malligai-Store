@@ -1,6 +1,7 @@
 package com.grocery.model;
 
 import jakarta.persistence.*;
+import lombok.AccessLevel;
 import lombok.AllArgsConstructor;
 import lombok.Data;
 import lombok.NoArgsConstructor;
@@ -9,7 +10,7 @@ import org.springframework.beans.factory.annotation.Value;
 // In Product.java
 @Entity
 @Data
-@NoArgsConstructor
+@NoArgsConstructor(access = AccessLevel.PUBLIC)
 @Table(name = "product")
 public class Product {
 
