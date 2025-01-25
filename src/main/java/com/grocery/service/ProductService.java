@@ -26,8 +26,9 @@ public class ProductService {
     // Get all products (excluding deleted ones) with caching
     @Cacheable(value = "products", unless = "#result == null || #result.isEmpty()")
     public List<Product> getAllProducts() {
-        return productRepository.findAll().stream().filter(product -> !product.isDeleted()).toList();
+        return productRepository.findAllByIsDeletedFalse(); // Direct filtering in the query
     }
+
 
     // Search products by name or category with caching
     @Cacheable(value = "products", key = "#searchTerm", unless = "#result == null || #result.isEmpty()")
@@ -38,8 +39,9 @@ public class ProductService {
     // Get a product by ID with caching
     @Cacheable(value = "product", key = "#id", unless = "#result == null || #result.isDeleted()")
     public Optional<Product> getProductById(Long id) {
-        return productRepository.findById(id).filter(product -> !product.isDeleted());
+        return productRepository.findByIdAndNotDeleted(id); // Fetch directly with filtering logic
     }
+
 
     // Create a new product and evict cache
     @CacheEvict(value = {"products", "product"}, allEntries = true)
@@ -148,7 +150,9 @@ public class ProductService {
     }
 
     // Find products by multiple categories (no caching as it's dynamic)
+    @Cacheable(value = "productsByCategory", key = "#categories.toString()")
     public List<Product> findProductsByCategories(List<String> categories) {
         return productRepository.findByCategories(categories);
     }
+
 }
