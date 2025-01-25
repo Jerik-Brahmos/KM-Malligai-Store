@@ -1,8 +1,14 @@
 package com.grocery.repository;
 
 import com.grocery.model.Product;
+import jakarta.transaction.Transactional;
+import org.hibernate.annotations.BatchSize;
+import org.springframework.data.domain.Page;
+import org.springframework.data.domain.Pageable;
+import org.springframework.data.jpa.repository.EntityGraph;
 import org.springframework.data.jpa.repository.JpaRepository;
 import org.springframework.data.jpa.repository.Query;
+import org.springframework.data.repository.query.Param;
 import org.springframework.stereotype.Repository;
 
 import java.util.List;
@@ -14,15 +20,26 @@ public interface ProductRepository extends JpaRepository<Product, Long> {
     @Query("SELECT p FROM Product p WHERE p.category = :categoryName AND p.isDeleted = false")
     List<Product> findByCategory(String categoryName);
 
+    // Fetch top 'n' products for the homepage with limit
+    @Query("SELECT p FROM Product p WHERE p.category = :categoryName AND p.isDeleted = false")
+    List<Product> findTopByCategory(String categoryName, Pageable pageable);
 
-    @Query("SELECT p FROM Product p WHERE (p.name LIKE %:searchTerm% OR p.category LIKE %:searchTerm%) AND p.isDeleted = false")
-    List<Product> searchProducts(String searchTerm);
+
+    @Query(value = "SELECT * FROM product p " +
+            "WHERE p.is_deleted = false " +
+            "AND MATCH(p.name, p.category) AGAINST(:searchTerm IN BOOLEAN MODE)",
+            countQuery = "SELECT COUNT(*) FROM product p " +
+                    "WHERE p.is_deleted = false " +
+                    "AND MATCH(p.name, p.category) AGAINST(:searchTerm IN BOOLEAN MODE)",
+            nativeQuery = true)
+    Page<Product> searchProducts(@Param("searchTerm") String searchTerm, Pageable pageable);
 
     @Query("UPDATE Product p SET p.isDeleted = true WHERE p.productId = :id")
     void softDeleteProduct(Long id);
 
     List<Product> findByIsDeletedFalse();
 
+    @EntityGraph(attributePaths = {"category", "reviews"})
     @Query("SELECT p FROM Product p WHERE p.productId = :id AND p.isDeleted = false")
     Optional<Product> findByIdAndNotDeleted(Long id);
 
@@ -32,9 +49,15 @@ public interface ProductRepository extends JpaRepository<Product, Long> {
     List<String> findAllCategories();
 
 
+    @BatchSize(size = 30)
+    @EntityGraph(attributePaths = {"category"})
     @Query("SELECT p FROM Product p WHERE p.category IN :categories AND p.isDeleted = false")
     List<Product> findByCategories(List<String> categories);
 
+
+    @Query("SELECT p FROM Product p WHERE p.isDeleted = false")
+    @BatchSize(size = 30)  // Fetch 30 records per batch
     List<Product> findAllByIsDeletedFalse();
+
 
 }

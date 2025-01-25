@@ -7,6 +7,7 @@ import com.grocery.service.ImageService;
 import com.grocery.service.ProductService;
 import jakarta.persistence.EntityNotFoundException;
 import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.data.domain.Page;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.MediaType;
 import org.springframework.http.ResponseEntity;
@@ -40,9 +41,11 @@ public class ProductController {
     }
 
     @GetMapping("/{categoryName}")
-    public List<Product> getProductsByCategory(@PathVariable String categoryName) {
-        return productService.findByCategory(categoryName);  // Method to fetch products based on category
+    public List<Product> getProductsByCategory(@PathVariable String categoryName,
+                                               @RequestParam(value = "limit", defaultValue = "0") int limit) {
+        return productService.findByCategory(categoryName, limit); // Pass the limit to the service
     }
+
 
     @GetMapping("/edit/products/{id}")
     public ResponseEntity<Product> getProductById(@PathVariable Long id) {
@@ -62,10 +65,16 @@ public class ProductController {
 
 
     @GetMapping("/search/{searchTerm}")
-    public ResponseEntity<List<Product>> searchProducts(@PathVariable String searchTerm) {
-        List<Product> products = productService.searchProducts(searchTerm);
-        return products.isEmpty() ? ResponseEntity.status(HttpStatus.NO_CONTENT).build() : ResponseEntity.ok(products);
+    public ResponseEntity<Page<Product>> searchProducts(
+            @PathVariable String searchTerm,
+            @RequestParam(defaultValue = "0") int page,
+            @RequestParam(defaultValue = "10") int size) {
+        Page<Product> products = productService.searchProducts(searchTerm, page, size);
+        return products.isEmpty()
+                ? ResponseEntity.status(HttpStatus.NO_CONTENT).build()
+                : ResponseEntity.ok(products);
     }
+
 
     // Create a new product
     @PostMapping

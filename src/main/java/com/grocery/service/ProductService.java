@@ -7,8 +7,13 @@ import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.cache.annotation.CacheEvict;
 import org.springframework.cache.annotation.CachePut;
 import org.springframework.cache.annotation.Cacheable;
+import org.springframework.data.domain.Page;
+import org.springframework.data.domain.PageRequest;
+import org.springframework.data.domain.Pageable;
+import org.springframework.data.jpa.repository.EntityGraph;
 import org.springframework.scheduling.annotation.Scheduled;
 import org.springframework.stereotype.Service;
+import org.springframework.transaction.annotation.Transactional;
 
 import java.util.ArrayList;
 import java.util.List;
@@ -24,19 +29,25 @@ public class ProductService {
     private OrderItemRepository orderItemRepository;
 
     // Get all products (excluding deleted ones) with caching
+    @Transactional(readOnly = true)
     @Cacheable(value = "products", unless = "#result == null || #result.isEmpty()")
     public List<Product> getAllProducts() {
         return productRepository.findAllByIsDeletedFalse(); // Direct filtering in the query
     }
 
 
-    // Search products by name or category with caching
-    @Cacheable(value = "products", key = "#searchTerm", unless = "#result == null || #result.isEmpty()")
-    public List<Product> searchProducts(String searchTerm) {
-        return productRepository.searchProducts(searchTerm);
+    @Transactional(readOnly = true)
+    @Cacheable(value = "products", key = "#searchTerm + '-' + #page + '-' + #size",
+            unless = "#result == null || #result.isEmpty()")
+    public Page<Product> searchProducts(String searchTerm, int page, int size) {
+        Pageable pageable = PageRequest.of(page, size);
+        String formattedSearchTerm = searchTerm + "*"; // Add wildcard for FULLTEXT search
+        return productRepository.searchProducts(formattedSearchTerm, pageable);
     }
 
+
     // Get a product by ID with caching
+    @Transactional(readOnly = true)  // Ensure read-only transaction for performance optimization
     @Cacheable(value = "product", key = "#id", unless = "#result == null || #result.isDeleted()")
     public Optional<Product> getProductById(Long id) {
         return productRepository.findByIdAndNotDeleted(id); // Fetch directly with filtering logic
@@ -79,9 +90,17 @@ public class ProductService {
     }
 
     // Find products by category with caching
-    @Cacheable(value = "categories", key = "#categoryName", unless = "#result == null || #result.isEmpty()")
-    public List<Product> findByCategory(String categoryName) {
-        return productRepository.findByCategory(categoryName);
+    @Transactional(readOnly = true)
+    @Cacheable(value = "categories", key = "#categoryName + '-' + #limit", unless = "#result == null || #result.isEmpty()")
+    public List<Product> findByCategory(String categoryName, int limit) {
+        if (limit > 0) {
+            // If limit is greater than 0, fetch top 'n' products for the homepage
+            Pageable pageable = PageRequest.of(0, limit);  // Page 0, limit is passed as the second argument
+            return productRepository.findTopByCategory(categoryName, pageable);
+        } else {
+            // If no limit is provided, fetch all products for the category
+            return productRepository.findByCategory(categoryName);
+        }
     }
 
     // Get product count (no caching applied here as it's not expensive)
@@ -150,7 +169,7 @@ public class ProductService {
     }
 
     // Find products by multiple categories (no caching as it's dynamic)
-    @Cacheable(value = "productsByCategory", key = "#categories.toString()")
+    @Cacheable(value = "productsByCategory", key = "#categories.toString()", unless = "#result == null || #result.isEmpty()")
     public List<Product> findProductsByCategories(List<String> categories) {
         return productRepository.findByCategories(categories);
     }
