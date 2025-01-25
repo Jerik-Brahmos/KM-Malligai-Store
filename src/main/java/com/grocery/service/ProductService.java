@@ -11,6 +11,7 @@ import org.springframework.data.domain.Page;
 import org.springframework.data.domain.PageRequest;
 import org.springframework.data.domain.Pageable;
 import org.springframework.data.jpa.repository.EntityGraph;
+import org.springframework.scheduling.annotation.Async;
 import org.springframework.scheduling.annotation.Scheduled;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
@@ -90,6 +91,7 @@ public class ProductService {
     }
 
     // Find products by category with caching
+    @Async
     @Transactional(readOnly = true)
     @Cacheable(value = "categories", key = "#categoryName + '-' + #limit", unless = "#result == null || #result.isEmpty()")
     public List<Product> findByCategory(String categoryName, int limit) {
