@@ -4,6 +4,9 @@ import com.grocery.model.Product;
 import com.grocery.repository.OrderItemRepository;
 import com.grocery.repository.ProductRepository;
 import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.cache.annotation.CacheEvict;
+import org.springframework.cache.annotation.CachePut;
+import org.springframework.cache.annotation.Cacheable;
 import org.springframework.scheduling.annotation.Scheduled;
 import org.springframework.stereotype.Service;
 
@@ -20,27 +23,32 @@ public class ProductService {
     @Autowired
     private OrderItemRepository orderItemRepository;
 
-    // Get all products (excluding deleted ones)
+    // Get all products (excluding deleted ones) with caching
+    @Cacheable(value = "products", unless = "#result == null || #result.isEmpty()")
     public List<Product> getAllProducts() {
         return productRepository.findAll().stream().filter(product -> !product.isDeleted()).toList();
     }
 
-    // Search products by name, or category
+    // Search products by name or category with caching
+    @Cacheable(value = "products", key = "#searchTerm", unless = "#result == null || #result.isEmpty()")
     public List<Product> searchProducts(String searchTerm) {
         return productRepository.searchProducts(searchTerm);
     }
 
+    // Get a product by ID with caching
+    @Cacheable(value = "product", key = "#id", unless = "#result == null || #result.isDeleted()")
     public Optional<Product> getProductById(Long id) {
         return productRepository.findById(id).filter(product -> !product.isDeleted());
     }
 
-
-    // Create a new product
+    // Create a new product and evict cache
+    @CacheEvict(value = {"products", "product"}, allEntries = true)
     public Product createProduct(Product product) {
         return productRepository.save(product);
     }
 
-    // Update a product
+    // Update a product and update cache
+    @CachePut(value = "product", key = "#id")
     public Product updateProduct(Long id, Product product) {
         Optional<Product> existingProduct = productRepository.findById(id);
         if (existingProduct.isPresent()) {
@@ -50,62 +58,55 @@ public class ProductService {
             updatedProduct.setCategory(product.getCategory());
             updatedProduct.setGrams(product.getGrams());
             updatedProduct.setImageUrl(product.getImageUrl()); // If new image is provided
-
             return productRepository.save(updatedProduct);
         }
         return null;
     }
 
-
-
-
-    // In ProductService.java
+    // Soft delete a product and evict cache
+    @CacheEvict(value = {"products", "product"}, key = "#id")
     public boolean softDeleteProduct(Long id) {
         Optional<Product> productOptional = productRepository.findById(id);
         if (productOptional.isPresent()) {
             Product product = productOptional.get();
-            product.setDeleted(true);  // Assuming you added an 'isDeleted' field to the Product model
-            productRepository.save(product);  // Save the updated product with the 'isDeleted' flag set
+            product.setDeleted(true);
+            productRepository.save(product);
             return true;
         }
         return false;
     }
 
-
-    // Find products by category (excluding deleted ones)
+    // Find products by category with caching
+    @Cacheable(value = "categories", key = "#categoryName", unless = "#result == null || #result.isEmpty()")
     public List<Product> findByCategory(String categoryName) {
         return productRepository.findByCategory(categoryName);
     }
 
+    // Get product count (no caching applied here as it's not expensive)
     public long getProductCount() {
         return productRepository.count();
     }
 
+    // Get best-selling products with caching
+    @Cacheable(value = "bestSellingProducts", unless = "#result == null || #result.isEmpty()")
     public List<Product> getBestSellingProducts() {
         List<Object[]> bestSellingProductsData = orderItemRepository.findBestSellingProducts();
-
         List<Product> bestSellingProducts = new ArrayList<>();
-
         for (Object[] data : bestSellingProductsData) {
             Long productId = (Long) data[0];
-            // Get the product details from the product repository
             Optional<Product> productOpt = productRepository.findByProductIdAndIsDeletedFalse(productId);
-
-            // If product exists and is not deleted, add it to the list
             productOpt.ifPresent(bestSellingProducts::add);
         }
-
         return bestSellingProducts;
     }
+
+    // Get filtered best-selling products (no caching as it's dynamic)
     public List<Product> getFilteredBestSellingProducts(String search, String category) {
         List<Object[]> bestSellingProductsData = orderItemRepository.findBestSellingProducts();
-
         List<Product> bestSellingProducts = new ArrayList<>();
-
         for (Object[] data : bestSellingProductsData) {
             Long productId = (Long) data[0];
             Optional<Product> productOpt = productRepository.findByProductIdAndIsDeletedFalse(productId);
-
             if (productOpt.isPresent()) {
                 Product product = productOpt.get();
                 if ((search == null || product.getName().toLowerCase().contains(search.toLowerCase())) &&
@@ -115,19 +116,19 @@ public class ProductService {
             } else {
                 System.err.println("Product not found for productId: " + productId);
             }
-
         }
-
         return bestSellingProducts;
     }
 
+    // Get product categories with caching
+    @Cacheable(value = "categories", unless = "#result == null || #result.isEmpty()")
     public List<String> getProductCategories() {
         return productRepository.findAllCategories();
     }
 
+    // Display best-selling products (no caching as it's a scheduled task)
     public void displayBestSellingProducts() {
         List<Product> bestSellingProducts = getBestSellingProducts();
-
         if (bestSellingProducts.isEmpty()) {
             System.out.println("No best-selling products found.");
         } else {
@@ -135,21 +136,19 @@ public class ProductService {
                 System.out.println("Product ID: " + product.getProductId());
                 System.out.println("Product Name: " + product.getName());
                 System.out.println("Price: " + product.getPrice());
-                // You can log or perform any other operations on the product details here.
             });
         }
     }
 
-    public List<Product> findProductsByCategories(List<String> categories) {
-        return productRepository.findByCategories(categories);
-    }
-
-
-
-
-    @Scheduled(fixedRate = 3600000) // 3600000 ms = 1 hour
+    // Scheduled task to evict best-selling products cache every hour
+    @Scheduled(fixedRate = 3600000) // 1 hour
+    @CacheEvict(value = "bestSellingProducts", allEntries = true)
     public void scheduledBestSellingProducts() {
         displayBestSellingProducts();
     }
 
+    // Find products by multiple categories (no caching as it's dynamic)
+    public List<Product> findProductsByCategories(List<String> categories) {
+        return productRepository.findByCategories(categories);
+    }
 }

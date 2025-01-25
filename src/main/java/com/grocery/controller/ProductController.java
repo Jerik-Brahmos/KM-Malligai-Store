@@ -27,7 +27,6 @@ public class ProductController {
     @Autowired
     private ProductRepository productRepository; // Inject the repository bean
 
-
     @Autowired
     private ProductService productService;
 
@@ -100,11 +99,6 @@ public class ProductController {
         Product updatedProduct = new Product(name, price, category, imageUrl, grams);
         return productService.updateProduct(id, updatedProduct);
     }
-
-
-
-
-
 
     // Soft delete a product
     @DeleteMapping("/{id}")
@@ -194,8 +188,4 @@ public class ProductController {
             return productService.getAllProducts(); // If no categories, return all products
         }
     }
-
-
-
-
 }
