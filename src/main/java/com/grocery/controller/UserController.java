@@ -1,5 +1,6 @@
 package com.grocery.controller;
 
+import com.grocery.dto.UserItems;
 import com.grocery.model.User;
 import com.grocery.service.UserService;
 import org.springframework.beans.factory.annotation.Autowired;
@@ -62,5 +63,9 @@ public class UserController {
     }
 
 
-
+    @GetMapping("/items")
+    public ResponseEntity<UserItems> getUserItems(@RequestParam Long userId) {
+        UserItems userItems = userService.getUserItems(userId);
+        return ResponseEntity.ok(userItems);
+    }
 }

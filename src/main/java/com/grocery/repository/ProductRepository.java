@@ -49,14 +49,12 @@ public interface ProductRepository extends JpaRepository<Product, Long> {
     List<String> findAllCategories();
 
 
-    @BatchSize(size = 30)
     @EntityGraph(attributePaths = {"category"})
     @Query("SELECT p FROM Product p WHERE p.category IN :categories AND p.isDeleted = false")
     List<Product> findByCategories(List<String> categories);
 
 
     @Query("SELECT p FROM Product p WHERE p.isDeleted = false")
-    @BatchSize(size = 30)  // Fetch 30 records per batch
     List<Product> findAllByIsDeletedFalse();
 
 

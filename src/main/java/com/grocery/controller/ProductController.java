@@ -197,4 +197,8 @@ public class ProductController {
             return productService.getAllProducts(); // If no categories, return all products
         }
     }
+
+
+
+
 }

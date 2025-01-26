@@ -1,7 +1,12 @@
 package com.grocery.service;
 
+import com.grocery.dto.UserItems;
+import com.grocery.model.CartItem;
 import com.grocery.model.User;
+import com.grocery.model.WishlistItem;
+import com.grocery.repository.CartRepository;
 import com.grocery.repository.UserRepository;
+import com.grocery.repository.WishlistRepository;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Service;
 import java.util.List;
@@ -11,6 +16,12 @@ public class UserService {
 
     @Autowired
     private UserRepository userRepository;
+
+    @Autowired
+    private WishlistRepository wishlistRepository;
+
+    @Autowired
+    private CartRepository cartRepository;
 
     public User saveUser(User user) {
         System.out.println("Saving user: " + user);
@@ -58,6 +69,12 @@ public class UserService {
 
     public long getUserCount() {
         return userRepository.count();
+    }
+
+    public UserItems getUserItems(Long userId) {
+        List<WishlistItem> wishlistItems = wishlistRepository.findByUserId(userId);
+        List<CartItem> cartItems = cartRepository.findByUserId(userId);
+        return new UserItems(wishlistItems, cartItems);
     }
 
 }
