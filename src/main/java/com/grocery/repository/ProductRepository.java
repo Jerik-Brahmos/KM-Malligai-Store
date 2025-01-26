@@ -27,13 +27,12 @@ public interface ProductRepository extends JpaRepository<Product, Long> {
 
     @Query(value = "SELECT * FROM product p " +
             "WHERE p.is_deleted = false " +
-            "AND (p.name LIKE %:searchTerm% OR p.category LIKE %:searchTerm%)",
+            "AND MATCH(p.name, p.category) AGAINST(:searchTerm IN BOOLEAN MODE)",
             countQuery = "SELECT COUNT(*) FROM product p " +
                     "WHERE p.is_deleted = false " +
-                    "AND (p.name LIKE %:searchTerm% OR p.category LIKE %:searchTerm%)",
+                    "AND MATCH(p.name, p.category) AGAINST(:searchTerm IN BOOLEAN MODE)",
             nativeQuery = true)
     Page<Product> searchProducts(@Param("searchTerm") String searchTerm, Pageable pageable);
-
 
     @Query("UPDATE Product p SET p.isDeleted = true WHERE p.productId = :id")
     void softDeleteProduct(Long id);

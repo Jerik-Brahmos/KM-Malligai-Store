@@ -42,9 +42,13 @@ public class ProductService {
             unless = "#result == null || #result.isEmpty()")
     public Page<Product> searchProducts(String searchTerm, int page, int size) {
         Pageable pageable = PageRequest.of(page, size);
-        String formattedSearchTerm = searchTerm + "*"; // Add wildcard for FULLTEXT search
-        return productRepository.searchProducts(formattedSearchTerm, pageable);
+        if (!searchTerm.endsWith("*")) {
+            searchTerm = searchTerm + "*";
+        }
+
+        return productRepository.searchProducts(searchTerm, pageable);
     }
+
 
 
     // Get a product by ID with caching
