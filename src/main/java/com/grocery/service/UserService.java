@@ -71,10 +71,11 @@ public class UserService {
         return userRepository.count();
     }
 
-    public UserItems getUserItems(Long userId) {
+    public UserItems getUserItems(String userId) {
         List<WishlistItem> wishlistItems = wishlistRepository.findByUserId(userId);
         List<CartItem> cartItems = cartRepository.findByUserId(userId);
         return new UserItems(wishlistItems, cartItems);
     }
+
 
 }

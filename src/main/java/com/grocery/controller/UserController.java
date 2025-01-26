@@ -64,8 +64,9 @@ public class UserController {
 
 
     @GetMapping("/items")
-    public ResponseEntity<UserItems> getUserItems(@RequestParam Long userId) {
+    public ResponseEntity<UserItems> getUserItems(@RequestParam String userId) {
         UserItems userItems = userService.getUserItems(userId);
         return ResponseEntity.ok(userItems);
     }
+
 }
