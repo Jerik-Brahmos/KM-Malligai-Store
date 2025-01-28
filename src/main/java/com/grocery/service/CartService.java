@@ -14,7 +14,6 @@ public class CartService {
     @Autowired
     private CartRepository cartRepository;
 
-    @Async
     public int getCartCount(String userId) {
         return cartRepository.countByUserId(userId);
     }
