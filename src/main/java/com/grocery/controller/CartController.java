@@ -9,7 +9,6 @@ import com.grocery.repository.ProductRepository;
 import com.grocery.service.CartService;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.http.HttpStatus;
-import org.springframework.http.MediaType;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
 
@@ -51,19 +50,22 @@ public class CartController {
 
     // Get all cart items for a user
     @GetMapping("/{userId}")
-    public ResponseEntity<List<CartItemResponse>> getCartItems(@PathVariable String userId) {
-        // Fetch cart items with caching handled by the service layer
-        List<CartItemResponse> cartItems = cartService.getCartItemsWithCache(userId);
-
-        if (cartItems.isEmpty()) {
-            return ResponseEntity.noContent().build();
-        }
-
-        return ResponseEntity.ok()
-                .contentType(MediaType.APPLICATION_JSON)
-                .body(cartItems);
+    public List<CartItemResponse> getCartItems(@PathVariable String userId) {
+        List<CartItem> cartItems = cartRepository.findByUserId(userId);
+        return cartItems.stream().map(cartItem -> {
+            Product product = productRepository.findById(cartItem.getProductId())
+                    .orElseThrow(() -> new ResourceNotFoundException("Product not found with ID: " + cartItem.getProductId()));
+            return new CartItemResponse(
+                    cartItem.getCartId(),
+                    product.getName(),
+                    product.getPrice(),
+                    product.getImageUrl(),
+                    product.getProductId(),
+                    cartItem.getQuantity(),
+                    product.getGrams()
+            );
+        }).collect(Collectors.toList());
     }
-
 
     // Update quantity of a specific cart item
     @PutMapping("/{cartId}")

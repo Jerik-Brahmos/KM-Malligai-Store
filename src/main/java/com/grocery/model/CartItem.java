@@ -1,6 +1,11 @@
     package com.grocery.model;
 
-    import jakarta.persistence.*;
+    import jakarta.persistence.Entity;
+    import jakarta.persistence.Id;
+    import jakarta.persistence.GeneratedValue;
+    import jakarta.persistence.GenerationType;
+    import jakarta.persistence.ManyToOne;
+    import jakarta.persistence.JoinColumn;
 
     @Entity
     public class CartItem {
@@ -14,7 +19,7 @@
         private Long productId;
         private int quantity;// Product ID, linking the cart item to the product
 
-        @ManyToOne(fetch = FetchType.LAZY)
+        @ManyToOne
         @JoinColumn(name = "productId", referencedColumnName = "productId", insertable = false, updatable = false)
         private Product product;  // Many CartItems can belong to one Product (but not the other way around)
 
