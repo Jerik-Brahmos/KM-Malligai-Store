@@ -51,10 +51,10 @@ public class CartController {
     // Get all cart items for a user
     @GetMapping("/{userId}")
     public List<CartItemResponse> getCartItems(@PathVariable String userId) {
-        List<CartItem> cartItems = cartRepository.findByUserId(userId);
+        List<CartItem> cartItems = cartRepository.findCartItemsWithProductsByUserId(userId);
+
         return cartItems.stream().map(cartItem -> {
-            Product product = productRepository.findById(cartItem.getProductId())
-                    .orElseThrow(() -> new ResourceNotFoundException("Product not found with ID: " + cartItem.getProductId()));
+            Product product = cartItem.getProduct();
             return new CartItemResponse(
                     cartItem.getCartId(),
                     product.getName(),
@@ -66,6 +66,8 @@ public class CartController {
             );
         }).collect(Collectors.toList());
     }
+
+
 
     // Update quantity of a specific cart item
     @PutMapping("/{cartId}")
