@@ -4,6 +4,7 @@ import com.grocery.model.WishlistItem;
 import com.grocery.repository.WishlistRepository;
 import jakarta.transaction.Transactional;
 import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.cache.annotation.Cacheable;
 import org.springframework.stereotype.Service;
 
 import java.util.List;
@@ -16,6 +17,7 @@ public class WishlistService {
     private WishlistRepository wishlistRepository;
 
     // Get all wishlist items for a user
+    @Cacheable(value = "wishlistItems", key = "#userId")
     public List<WishlistItem> getWishlistByUserId(String userId) {
         return wishlistRepository.findByUserId(userId);
     }

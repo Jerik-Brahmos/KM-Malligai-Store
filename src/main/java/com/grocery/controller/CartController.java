@@ -51,7 +51,7 @@ public class CartController {
     // Get all cart items for a user
     @GetMapping("/{userId}")
     public List<CartItemResponse> getCartItems(@PathVariable String userId) {
-        List<CartItem> cartItems = cartRepository.findByUserId(userId);
+        List<CartItem> cartItems = cartService.getCartItemsByUserId(userId);
         return cartItems.stream().map(cartItem -> {
             Product product = productRepository.findById(cartItem.getProductId())
                     .orElseThrow(() -> new ResourceNotFoundException("Product not found with ID: " + cartItem.getProductId()));

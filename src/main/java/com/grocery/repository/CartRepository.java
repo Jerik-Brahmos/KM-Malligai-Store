@@ -9,6 +9,7 @@ import java.util.List;
 
 public interface CartRepository extends JpaRepository<CartItem, Long> {
     List<CartItem> findByUserId(String userId);
+
     CartItem findByUserIdAndProductId(String userId, Long productId); // Custom query
 
     @Query("SELECT COUNT(c) FROM CartItem c WHERE c.userId = :userId")
