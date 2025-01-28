@@ -1,6 +1,5 @@
 package com.grocery.service;
 
-import com.grocery.dto.ProductDTO;
 import com.grocery.model.Product;
 import com.grocery.repository.OrderItemRepository;
 import com.grocery.repository.ProductRepository;
@@ -20,7 +19,6 @@ import org.springframework.transaction.annotation.Transactional;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.Optional;
-import java.util.stream.Collectors;
 
 @Service
 public class ProductService {
@@ -130,15 +128,24 @@ public class ProductService {
     }
 
     // Get filtered best-selling products (no caching as it's dynamic)
-    public List<ProductDTO> getFilteredBestSellingProducts(String search, String category) {
-        List<ProductDTO> bestSellingProducts = orderItemRepository.findBestSellingProductDetails();
-
-        return bestSellingProducts.stream()
-                .filter(product -> (search == null || product.getName().toLowerCase().contains(search.toLowerCase())) &&
-                        (category == null || product.getCategory().equalsIgnoreCase(category)))
-                .collect(Collectors.toList());
+    public List<Product> getFilteredBestSellingProducts(String search, String category) {
+        List<Object[]> bestSellingProductsData = orderItemRepository.findBestSellingProducts();
+        List<Product> bestSellingProducts = new ArrayList<>();
+        for (Object[] data : bestSellingProductsData) {
+            Long productId = (Long) data[0];
+            Optional<Product> productOpt = productRepository.findByProductIdAndIsDeletedFalse(productId);
+            if (productOpt.isPresent()) {
+                Product product = productOpt.get();
+                if ((search == null || product.getName().toLowerCase().contains(search.toLowerCase())) &&
+                        (category == null || product.getCategory().equalsIgnoreCase(category))) {
+                    bestSellingProducts.add(product);
+                }
+            } else {
+                System.err.println("Product not found for productId: " + productId);
+            }
+        }
+        return bestSellingProducts;
     }
-
 
     // Get product categories with caching
     @Cacheable(value = "categories", unless = "#result == null || #result.isEmpty()")
