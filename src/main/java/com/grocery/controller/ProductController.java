@@ -162,19 +162,21 @@ public class ProductController {
     }
 
     @GetMapping("/best-selling")
-    public ResponseEntity<List<Product>> getBestSellingProducts(
+    public ResponseEntity<List<ProductDTO>> getBestSellingProducts(
             @RequestParam(required = false) String search,
             @RequestParam(required = false) String category) {
 
-        List<Product> bestSellingProducts = productService.getFilteredBestSellingProducts(search, category);
+        List<ProductDTO> bestSellingProducts = productService.getFilteredBestSellingProducts(search, category);
 
         if (bestSellingProducts.isEmpty()) {
             return ResponseEntity.noContent().build();
         }
+
         return ResponseEntity.ok()
                 .contentType(MediaType.APPLICATION_JSON)
                 .body(bestSellingProducts);
     }
+
 
     @GetMapping("/products/categories")
     public ResponseEntity<List<String>> getProductCategories() {
