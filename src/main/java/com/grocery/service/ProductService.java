@@ -31,7 +31,7 @@ public class ProductService {
 
     // Get all products (excluding deleted ones) with caching
     @Transactional(readOnly = true)
-    @Cacheable(value = "products", key = "'allProducts' + T(java.util.Objects).hash(productService.getActiveProducts())")
+    @Cacheable(value = "products", unless = "#result == null || #result.isEmpty()")
     public List<Product> getAllProducts() {
         return productRepository.findAllByIsDeletedFalse(); // Direct filtering in the query
     }
@@ -53,7 +53,7 @@ public class ProductService {
 
     // Get a product by ID with caching
     @Transactional(readOnly = true)  // Ensure read-only transaction for performance optimization
-    @Cacheable(value = "products", key = "'allProducts' + T(java.util.Objects).hash(productService.getActiveProducts())")
+    @Cacheable(value = "product", key = "#id", unless = "#result == null || #result.isDeleted()")
     public Optional<Product> getProductById(Long id) {
         return productRepository.findByIdAndNotDeleted(id); // Fetch directly with filtering logic
     }
