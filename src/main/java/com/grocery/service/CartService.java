@@ -18,7 +18,6 @@ public class CartService {
         return cartRepository.countByUserId(userId);
     }
 
-    @Cacheable(value = "cartItems", key = "#userId")
     public List<CartItem> getCartItemsByUserId(String userId) {
         return cartRepository.findByUserId(userId);
     }
