@@ -31,7 +31,7 @@ public class ProductService {
 
     // Get all products (excluding deleted ones) with caching
     @Transactional(readOnly = true)
-    @Cacheable(value = "products", unless = "#result == null || #result.isEmpty()")
+    @Cacheable(value = "products", key = "'allProducts' + T(java.util.Objects).hash(productService.getActiveProducts())")
     public List<Product> getAllProducts() {
         return productRepository.findAllByIsDeletedFalse(); // Direct filtering in the query
     }
