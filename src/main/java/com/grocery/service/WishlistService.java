@@ -17,7 +17,6 @@ public class WishlistService {
     private WishlistRepository wishlistRepository;
 
     // Get all wishlist items for a user
-    @Cacheable(value = "wishlistItems", key = "#userId")
     public List<WishlistItem> getWishlistByUserId(String userId) {
         return wishlistRepository.findByUserId(userId);
     }
