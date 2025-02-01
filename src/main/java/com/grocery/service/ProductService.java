@@ -53,7 +53,7 @@ public class ProductService {
 
     // Get a product by ID with caching
     @Transactional(readOnly = true)  // Ensure read-only transaction for performance optimization
-    @Cacheable(value = "product", key = "#id", unless = "#result == null || #result.isDeleted()")
+    @Cacheable(value = "products", key = "'allProducts' + T(java.util.Objects).hash(productService.getActiveProducts())")
     public Optional<Product> getProductById(Long id) {
         return productRepository.findByIdAndNotDeleted(id); // Fetch directly with filtering logic
     }
