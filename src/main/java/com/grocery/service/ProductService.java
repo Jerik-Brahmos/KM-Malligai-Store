@@ -82,7 +82,7 @@ public class ProductService {
     }
 
     // Soft delete a product and evict cache
-    @CacheEvict(value = {"products", "product"}, key = "#id")
+    @CacheEvict(value = {"products", "product"}, allEntries = true)
     public boolean softDeleteProduct(Long id) {
         Optional<Product> productOptional = productRepository.findById(id);
         if (productOptional.isPresent()) {
