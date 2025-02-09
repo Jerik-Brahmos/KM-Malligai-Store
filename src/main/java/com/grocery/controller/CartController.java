@@ -1,6 +1,7 @@
 package com.grocery.controller;
 
 import com.grocery.dto.CartItemResponse;
+import com.grocery.dto.ProductVariantResponse;
 import com.grocery.exception.ResourceNotFoundException;
 import com.grocery.model.CartItem;
 import com.grocery.model.Product;
@@ -51,21 +52,45 @@ public class CartController {
     // Get all cart items for a user
     @GetMapping("/{userId}")
     public List<CartItemResponse> getCartItems(@PathVariable String userId) {
+        // Fetch all cart items for the user
         List<CartItem> cartItems = cartService.getCartItemsByUserId(userId);
-        return cartItems.stream().map(cartItem -> {
-            Product product = productRepository.findById(cartItem.getProductId())
-                    .orElseThrow(() -> new ResourceNotFoundException("Product not found with ID: " + cartItem.getProductId()));
-            return new CartItemResponse(
-                    cartItem.getCartId(),
-                    product.getName(),
-                    product.getPrice(),
-                    product.getImageUrl(),
-                    product.getProductId(),
-                    cartItem.getQuantity(),
-                    product.getGrams()
-            );
-        }).collect(Collectors.toList());
+
+        // Extract product IDs from cart items
+        List<Long> productIds = cartItems.stream()
+                .map(CartItem::getProductId)
+                .distinct()
+                .collect(Collectors.toList());
+
+        // Fetch all products in a single query
+        Map<Long, Product> productMap = productRepository.findByProductIdIn(productIds)
+                .stream()
+                .collect(Collectors.toMap(Product::getProductId, product -> product));
+
+        // Convert to response
+        return cartItems.stream()
+                .map(cartItem -> {
+                    Product product = productMap.get(cartItem.getProductId());
+                    if (product == null) {
+                        throw new ResourceNotFoundException("Product not found with ID: " + cartItem.getProductId());
+                    }
+
+                    // Fetch product variants (grams & prices)
+                    List<ProductVariantResponse> variants = product.getVariants().stream()
+                            .map(variant -> new ProductVariantResponse(variant.getVariantId(),variant.getGrams(), variant.getPrice()))
+                            .collect(Collectors.toList());
+
+                    return new CartItemResponse(
+                            cartItem.getCartId(),
+                            product.getName(),
+                            product.getImageUrl(),
+                            product.getProductId(),
+                            cartItem.getQuantity(),
+                            variants  // Multiple grams & prices
+                    );
+                }).collect(Collectors.toList());
     }
+
+
 
     // Update quantity of a specific cart item
     @PutMapping("/{cartId}")

@@ -4,15 +4,34 @@ import lombok.AllArgsConstructor;
 import lombok.Data;
 import lombok.NoArgsConstructor;
 
-@Data
-@NoArgsConstructor
-@AllArgsConstructor
+import java.util.List;
+
 public class ProductDTO {
+    private Long productId;
     private String name;
-    private double price;
     private String category;
-    private String grams;
-    private String imageUrl; // Optional for input, filled during image upload
+    private String imageUrl;// Optional for input, filled during image upload
+    private List<ProductVariantResponse> variants;
+
+    public ProductDTO(Long productId, String name, String category, String imageUrl, List<ProductVariantResponse> variants) {
+        this.productId = productId;
+        this.name = name;
+        this.category = category;
+        this.imageUrl = imageUrl;
+        this.variants = variants;
+    }
+
+    public ProductDTO() {
+
+    }
+
+    public Long getProductId() {
+        return productId;
+    }
+
+    public void setProductId(Long productId) {
+        this.productId = productId;
+    }
 
     public String getName() {
         return name;
@@ -20,14 +39,6 @@ public class ProductDTO {
 
     public void setName(String name) {
         this.name = name;
-    }
-
-    public double getPrice() {
-        return price;
-    }
-
-    public void setPrice(double price) {
-        this.price = price;
     }
 
     public String getCategory() {
@@ -38,19 +49,19 @@ public class ProductDTO {
         this.category = category;
     }
 
-    public String getGrams() {
-        return grams;
-    }
-
-    public void setGrams(String grams) {
-        this.grams = grams;
-    }
-
     public String getImageUrl() {
         return imageUrl;
     }
 
     public void setImageUrl(String imageUrl) {
         this.imageUrl = imageUrl;
+    }
+
+    public List<ProductVariantResponse> getVariants() {
+        return variants;
+    }
+
+    public void setVariants(List<ProductVariantResponse> variants) {
+        this.variants = variants;
     }
 }

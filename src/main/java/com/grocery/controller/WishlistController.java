@@ -1,5 +1,6 @@
 package com.grocery.controller;
 
+import com.grocery.dto.ProductVariantResponse;
 import com.grocery.dto.WishlistItemResponse;
 import com.grocery.model.WishlistItem;
 import com.grocery.model.Product;
@@ -13,6 +14,7 @@ import org.springframework.web.bind.annotation.*;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
+import java.util.Objects;
 import java.util.stream.Collectors;
 
 @RestController
@@ -30,23 +32,43 @@ public class WishlistController {
     public List<WishlistItemResponse> getWishlist(@PathVariable String userId) {
         List<WishlistItem> wishlistItems = wishlistService.getWishlistByUserId(userId);
 
-        // Convert wishlist items to include product details
-        return wishlistItems.stream().map(wishlistItem -> {
-            Product product = productRepository.findById(wishlistItem.getProductId()).orElse(null);
-            if (product != null) {
-                return new WishlistItemResponse(
-                        wishlistItem.getWishlistId(),
-                        wishlistItem.getProductId() ,
-                        product.getName(),
-                        product.getPrice(),
-                        product.getImageUrl(),
-                        product.getCategory()
-                );
-            }
-            return null;
-        }).filter(response -> response != null).collect(Collectors.toList());
+        // Extract product IDs from wishlist items
+        List<Long> productIds = wishlistItems.stream()
+                .map(WishlistItem::getProductId)
+                .distinct()
+                .collect(Collectors.toList());
 
+        // Fetch all products in a single query
+        Map<Long, Product> productMap = productRepository.findByProductIdIn(productIds)
+                .stream()
+                .collect(Collectors.toMap(Product::getProductId, product -> product));
+
+        // Convert wishlist items to response
+        return wishlistItems.stream()
+                .map(wishlistItem -> {
+                    Product product = productMap.get(wishlistItem.getProductId());
+                    if (product == null) {
+                        return null;
+                    }
+
+                    // Fetch product variants (grams & prices)
+                    List<ProductVariantResponse> variants = product.getVariants().stream()
+                            .map(variant -> new ProductVariantResponse(variant.getVariantId(), variant.getGrams(), variant.getPrice()))
+                            .collect(Collectors.toList());
+
+                    return new WishlistItemResponse(
+                            wishlistItem.getWishlistId(),
+                            wishlistItem.getProductId(),
+                            product.getName(),
+                            product.getImageUrl(),
+                            product.getCategory(),
+                            variants  // Multiple grams & prices
+                    );
+                })
+                .filter(Objects::nonNull)
+                .collect(Collectors.toList());
     }
+
 
     // Add an item to the wishlist
     @PostMapping

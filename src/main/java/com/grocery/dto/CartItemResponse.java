@@ -1,44 +1,28 @@
 package com.grocery.dto;
 
+import java.util.List;
+
 public class CartItemResponse {
 
     private Long cartId;
     private String productName;
-    private double productPrice;
     private String productImageUrl;
-    private int quantity;
     private Long productId;
-    private String productGram;
+    private int quantity;
+    private List<ProductVariantResponse> variants; // Multiple grams & prices
 
-    public CartItemResponse(Long cartId, String productName, double productPrice, String productImageUrl, Long productId, int quantity, String productGram) {
+    public CartItemResponse(Long cartId, String productName, String productImageUrl, Long productId, int quantity, List<ProductVariantResponse> variants) {
         this.cartId = cartId;
         this.productName = productName;
-        this.productPrice = productPrice;
         this.productImageUrl = productImageUrl;
+        this.productId = productId;
         this.quantity = quantity;
-        this.productId = productId;
-        this.productGram = productGram;
+        this.variants = variants;
     }
 
-    public Long getProductId() {
-        return productId;
-    }
-
-    public void setProductId(Long productId) {
-        this.productId = productId;
-    }
-
-    // Getters and setters
+    // Getters and Setters
     public Long getCartId() {
         return cartId;
-    }
-
-    public int getQuantity() {
-        return quantity;
-    }
-
-    public void setQuantity(int quantity) {
-        this.quantity = quantity;
     }
 
     public void setCartId(Long cartId) {
@@ -53,14 +37,6 @@ public class CartItemResponse {
         this.productName = productName;
     }
 
-    public double getProductPrice() {
-        return productPrice;
-    }
-
-    public void setProductPrice(double productPrice) {
-        this.productPrice = productPrice;
-    }
-
     public String getProductImageUrl() {
         return productImageUrl;
     }
@@ -69,11 +45,27 @@ public class CartItemResponse {
         this.productImageUrl = productImageUrl;
     }
 
-    public String getProductGram() {
-        return productGram;
+    public Long getProductId() {
+        return productId;
     }
 
-    public void setProductGram(String productGram) {
-        this.productGram = productGram;
+    public void setProductId(Long productId) {
+        this.productId = productId;
+    }
+
+    public int getQuantity() {
+        return quantity;
+    }
+
+    public void setQuantity(int quantity) {
+        this.quantity = quantity;
+    }
+
+    public List<ProductVariantResponse> getVariants() {
+        return variants;
+    }
+
+    public void setVariants(List<ProductVariantResponse> variants) {
+        this.variants = variants;
     }
 }

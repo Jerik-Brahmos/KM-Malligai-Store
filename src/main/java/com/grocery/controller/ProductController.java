@@ -36,15 +36,21 @@ public class ProductController {
 
     // Get all products
     @GetMapping
-    public List<Product> getAllProducts() {
-        return productService.getAllProducts();
+    public ResponseEntity<List<ProductDTO>> getAllProducts() {
+        List<ProductDTO> productDTOs = productService.getAllProductsWithVariants();
+        return ResponseEntity.ok(productDTOs);
     }
 
+
     @GetMapping("/{categoryName}")
-    public List<Product> getProductsByCategory(@PathVariable String categoryName,
-                                               @RequestParam(value = "limit", defaultValue = "0") int limit) {
-        return productService.findByCategory(categoryName, limit); // Pass the limit to the service
+    public ResponseEntity<List<ProductDTO>> getProductsByCategory(
+            @PathVariable String categoryName,
+            @RequestParam(value = "limit", defaultValue = "0") int limit) {
+
+        List<ProductDTO> productDTOs = productService.findByCategoryWithVariants(categoryName, limit);
+        return ResponseEntity.ok(productDTOs);
     }
+
 
 
     @GetMapping("/edit/products/{id}")
@@ -65,49 +71,54 @@ public class ProductController {
 
 
     @GetMapping("/search/{searchTerm}")
-    public ResponseEntity<Page<Product>> searchProducts(
+    public ResponseEntity<Page<ProductDTO>> searchProducts(
             @PathVariable String searchTerm,
             @RequestParam(defaultValue = "0") int page,
             @RequestParam(defaultValue = "10") int size) {
-        Page<Product> products = productService.searchProducts(searchTerm, page, size);
-        return products.isEmpty()
+
+        Page<ProductDTO> productDTOs = productService.searchProductsWithVariants(searchTerm, page, size);
+        return productDTOs.isEmpty()
                 ? ResponseEntity.status(HttpStatus.NO_CONTENT).build()
-                : ResponseEntity.ok(products);
+                : ResponseEntity.ok(productDTOs);
     }
 
 
-    // Create a new product
     @PostMapping
-    public ResponseEntity<Product> createProduct(@RequestBody Product product) {
-        Product createdProduct = productService.createProduct(product);
-        return ResponseEntity.status(HttpStatus.CREATED).body(createdProduct);
-    }
+    public ResponseEntity<Product> createProduct(
+            @RequestParam("name") String name,
+            @RequestParam("category") String category,
+            @RequestParam(value = "file", required = false) MultipartFile file,
+            @RequestParam("grams") List<String> gramsList,
+            @RequestParam("prices") List<Double> priceList) throws IOException {
 
-    @PutMapping("/{id}")
-    public Product updateProduct(@PathVariable Long id,
-                                 @RequestParam(value = "file", required = false) MultipartFile file,
-                                 @RequestParam String name,
-                                 @RequestParam String category,
-                                 @RequestParam String grams,
-                                 @RequestParam double price) throws IOException {
         String imageUrl = null;
         if (file != null && !file.isEmpty()) {
             imageUrl = imageService.uploadImage(file.getBytes(), file.getOriginalFilename());
         }
 
-        // Fetch existing product using the repository instance
-        Product existingProduct = productRepository.findById(id)
-                .orElseThrow(() -> new RuntimeException("Product not found"));
+        Product createdProduct = productService.createProduct(name, category, imageUrl, gramsList, priceList);
+        return ResponseEntity.status(HttpStatus.CREATED).body(createdProduct);
+    }
 
-        // Retain the existing image URL if no new file is uploaded
-        if (imageUrl == null) {
-            imageUrl = existingProduct.getImageUrl();
+    @PutMapping("/{id}")
+    public ResponseEntity<Product> updateProduct(
+            @PathVariable Long id,
+            @RequestParam(value = "file", required = false) MultipartFile file,
+            @RequestParam String name,
+            @RequestParam String category,
+            @RequestParam List<String> grams,
+            @RequestParam List<Double> prices) throws IOException {
+
+        String imageUrl = null;
+        if (file != null && !file.isEmpty()) {
+            imageUrl = imageService.uploadImage(file.getBytes(), file.getOriginalFilename());
         }
 
         // Update the product with new details
-        Product updatedProduct = new Product(name, price, category, imageUrl, grams);
-        return productService.updateProduct(id, updatedProduct);
+        Product updatedProduct = productService.updateProduct(id, name, category, imageUrl, grams, prices);
+        return ResponseEntity.ok(updatedProduct);
     }
+
 
     // Soft delete a product
     @DeleteMapping("/{id}")
@@ -124,25 +135,27 @@ public class ProductController {
         }
     }
 
-    @PostMapping("/addproduct")
-    public ResponseEntity<Product> addProduct(
-            @RequestParam("file") MultipartFile file,
-            @RequestParam("name") String name,
-            @RequestParam("category") String category,
-            @RequestParam("grams") String grams,
-            @RequestParam("price") double price
-    ) {
-        try {
-            String imageUrl = imageService.uploadImage(file.getBytes(), file.getOriginalFilename());
-            Product product = new Product(name, price, category, imageUrl, grams);
+        @PostMapping("/addproduct")
+        public ResponseEntity<Product> addProduct(
+                @RequestParam("file") MultipartFile file,
+                @RequestParam("name") String name,
+                @RequestParam("category") String category,
+                @RequestParam("variants") List<String> gramsList,
+                @RequestParam("prices") List<Double> priceList
+        ) {
+            try {
+                // Upload image
+                String imageUrl = imageService.uploadImage(file.getBytes(), file.getOriginalFilename());
 
-            Product savedProduct = productService.createProduct(product);
-            return ResponseEntity.status(HttpStatus.CREATED).body(savedProduct);
+                // Create product and variants
+                Product savedProduct = productService.createProduct(name, category, imageUrl, gramsList, priceList);
 
-        } catch (Exception e) {
-            return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR).build();
+                return ResponseEntity.status(HttpStatus.CREATED).body(savedProduct);
+            } catch (Exception e) {
+                return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR).build();
+            }
         }
-    }
+
 
     @RequestMapping("/checkCookies")
     public ResponseEntity<String> checkCookies(HttpServletRequest request) {
@@ -187,18 +200,18 @@ public class ProductController {
     }
 
     @GetMapping("/filterbycategory")
-    public List<Product> getProductsByCategories(@RequestParam(required = false) List<String> categories) {
+    public ResponseEntity<List<ProductDTO>> getProductsByCategories(@RequestParam(required = false) List<String> categories) {
         System.out.println("Selected Categories: " + categories); // Log the categories received
 
-        // Return filtered products if categories are provided, otherwise return all products
+        List<ProductDTO> productDTOs;
+
         if (categories != null && !categories.isEmpty()) {
-            return productService.findProductsByCategories(categories);
+            productDTOs = productService.findProductsByCategories(categories);
         } else {
-            return productService.getAllProducts(); // If no categories, return all products
+            productDTOs = productService.getAllProductsWithVariants(); // If no categories, return all products
         }
+
+        return ResponseEntity.ok(productDTOs);
     }
-
-
-
 
 }

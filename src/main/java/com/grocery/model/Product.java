@@ -1,40 +1,42 @@
 package com.grocery.model;
 
+import com.fasterxml.jackson.annotation.JsonIgnoreProperties;
 import jakarta.persistence.*;
 import lombok.AllArgsConstructor;
 import lombok.Data;
 import lombok.NoArgsConstructor;
 import org.springframework.beans.factory.annotation.Value;
 
+import java.util.ArrayList;
+import java.util.List;
+
 // In Product.java
 @Entity
 @Data
 @Table(name = "product")
+@JsonIgnoreProperties({"variants"})
 public class Product {
 
     @Id
     @GeneratedValue(strategy = GenerationType.IDENTITY)
     private Long productId;  // Auto-generated ID
     private String name;
-    private double price;
     private String category;
     private String imageUrl;
-    private String grams; // New field for weight in string format
 
     @Column(nullable = false)
     private boolean isDeleted;
 
-
+    @OneToMany(mappedBy = "product", cascade = CascadeType.ALL, orphanRemoval = true, fetch = FetchType.EAGER)
+    private List<ProductVariant> variants = new ArrayList<>();
     // No-arg constructor
     public Product() {
     }
 
-    public Product(String name, double price, String category, String imageUrl, String grams) {
+    public Product(String name, String category, String imageUrl) {
         this.name = name;
-        this.price = price;
         this.category = category;
         this.imageUrl = imageUrl;
-        this.grams = grams;
         this.isDeleted = false;
     }
 
@@ -64,13 +66,6 @@ public class Product {
     }
 
 
-    public double getPrice() {
-        return price;
-    }
-
-    public void setPrice(double price) {
-        this.price = price;
-    }
 
     public String getCategory() {
         return category;
@@ -88,11 +83,11 @@ public class Product {
         this.imageUrl = imageUrl;
     }
 
-    public String getGrams() {
-        return grams;
+    public List<ProductVariant> getVariants() {
+        return variants;
     }
 
-    public void setGrams(String grams) {
-        this.grams = grams;
+    public void setVariants(List<ProductVariant> variants) {
+        this.variants = variants;
     }
 }

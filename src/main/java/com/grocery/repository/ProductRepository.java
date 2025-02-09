@@ -17,22 +17,26 @@ import java.util.Optional;
 @Repository
 public interface ProductRepository extends JpaRepository<Product, Long> {
 
-    @Query("SELECT p FROM Product p WHERE p.category = :categoryName AND p.isDeleted = false")
-    List<Product> findByCategory(String categoryName);
+    List<Product> findByProductIdIn(List<Long> productIds);
 
-    // Fetch top 'n' products for the homepage with limit
-    @Query("SELECT p FROM Product p WHERE p.category = :categoryName AND p.isDeleted = false")
-    List<Product> findTopByCategory(String categoryName, Pageable pageable);
+    @Query("SELECT DISTINCT p FROM Product p LEFT JOIN FETCH p.variants WHERE p.category = :categoryName AND p.isDeleted = false")
+    List<Product> findTopByCategoryWithVariants(@Param("categoryName") String categoryName, Pageable pageable);
+
+    @Query("SELECT DISTINCT p FROM Product p LEFT JOIN FETCH p.variants WHERE p.category = :categoryName AND p.isDeleted = false")
+    List<Product> findByCategoryWithVariants(@Param("categoryName") String categoryName);
 
 
-    @Query(value = "SELECT * FROM product p " +
+    @Query(value = "SELECT DISTINCT p.product_id, p.name, p.category, p.image_url, v.variant_id, v.grams AS variant_grams, v.price " +
+            "FROM product p " +
+            "LEFT JOIN product_variant v ON p.product_id = v.product_id " +
             "WHERE p.is_deleted = false " +
             "AND MATCH(p.name, p.category) AGAINST(:searchTerm IN BOOLEAN MODE)",
             countQuery = "SELECT COUNT(*) FROM product p " +
                     "WHERE p.is_deleted = false " +
                     "AND MATCH(p.name, p.category) AGAINST(:searchTerm IN BOOLEAN MODE)",
             nativeQuery = true)
-    Page<Product> searchProducts(@Param("searchTerm") String searchTerm, Pageable pageable);
+    Page<Object[]> searchProductsWithVariants(@Param("searchTerm") String searchTerm, Pageable pageable);
+
 
     @Query("UPDATE Product p SET p.isDeleted = true WHERE p.productId = :id")
     void softDeleteProduct(Long id);
@@ -49,12 +53,16 @@ public interface ProductRepository extends JpaRepository<Product, Long> {
     List<String> findAllCategories();
 
 
-    @EntityGraph(attributePaths = {"category"})
-    @Query("SELECT p FROM Product p WHERE p.category IN :categories AND p.isDeleted = false")
-    List<Product> findByCategories(List<String> categories);
+    @Query("SELECT p FROM Product p LEFT JOIN FETCH p.variants WHERE p.category IN :categories AND p.isDeleted = false")
+    List<Product> findByCategoriesWithVariants(@Param("categories") List<String> categories);
 
 
-    @Query("SELECT p FROM Product p WHERE p.isDeleted = false")
+
+//    @Query("SELECT p FROM Product p WHERE p.isDeleted = false")
+//    List<Product> findAllByIsDeletedFalse();
+
+
+    @Query("SELECT DISTINCT p FROM Product p LEFT JOIN FETCH p.variants WHERE p.isDeleted = false")
     List<Product> findAllByIsDeletedFalse();
 
 

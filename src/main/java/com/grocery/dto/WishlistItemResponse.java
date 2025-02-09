@@ -1,24 +1,27 @@
 package com.grocery.dto;
 
+import java.util.List;
+
 public class WishlistItemResponse {
 
-    private Long wishlistId;  // Add wishlistId field
+    private Long wishlistId;
     private Long productId;
     private String name;
-    private double price;
     private String imageUrl;
     private String category;
+    private List<ProductVariantResponse> variants; // Multiple grams & prices
 
-    // Constructors, getters, and setters
-    public WishlistItemResponse(Long wishlistId, Long productId, String name, double price, String imageUrl, String category) {
+    // Constructor
+    public WishlistItemResponse(Long wishlistId, Long productId, String name, String imageUrl, String category, List<ProductVariantResponse> variants) {
         this.wishlistId = wishlistId;
         this.productId = productId;
         this.name = name;
-        this.price = price;
         this.imageUrl = imageUrl;
         this.category = category;
+        this.variants = variants;
     }
 
+    // Getters and Setters
     public Long getWishlistId() {
         return wishlistId;
     }
@@ -43,14 +46,6 @@ public class WishlistItemResponse {
         this.name = name;
     }
 
-    public double getPrice() {
-        return price;
-    }
-
-    public void setPrice(double price) {
-        this.price = price;
-    }
-
     public String getImageUrl() {
         return imageUrl;
     }
@@ -65,5 +60,13 @@ public class WishlistItemResponse {
 
     public void setCategory(String category) {
         this.category = category;
+    }
+
+    public List<ProductVariantResponse> getVariants() {
+        return variants;
+    }
+
+    public void setVariants(List<ProductVariantResponse> variants) {
+        this.variants = variants;
     }
 }
