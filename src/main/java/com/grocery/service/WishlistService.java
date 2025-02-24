@@ -16,10 +16,10 @@ public class WishlistService {
     @Autowired
     private WishlistRepository wishlistRepository;
 
-    // Get all wishlist items for a user
-    public List<WishlistItem> getWishlistByUserId(String userId) {
-        return wishlistRepository.findByUserId(userId);
-    }
+        // Get all wishlist items for a user
+        public List<WishlistItem> getWishlistByUserId(String userId) {
+            return wishlistRepository.findByUserId(userId);
+        }
 
     // Add an item to the wishlist
     public WishlistItem addToWishlist(WishlistItem wishlistItem) {
@@ -38,5 +38,17 @@ public class WishlistService {
 
     public int getWishlistCount(String userId) {
         return wishlistRepository.countByUserId(userId);
+    }
+
+    public boolean updateVariant(String userId, Long productId, Long variantId) {
+        Optional<WishlistItem> wishlistItem = wishlistRepository.findByUserIdAndProductId(userId, productId);
+
+        if (wishlistItem.isPresent()) {
+            WishlistItem item = wishlistItem.get();
+            item.setVariantId(variantId);
+            wishlistRepository.save(item);
+            return true;
+        }
+        return false;
     }
 }

@@ -9,16 +9,23 @@ public class CartItemResponse {
     private String productImageUrl;
     private Long productId;
     private int quantity;
-    private List<ProductVariantResponse> variants; // Multiple grams & prices
+    private Long variantId;
+    private String grams;
+    private double price;
 
-    public CartItemResponse(Long cartId, String productName, String productImageUrl, Long productId, int quantity, List<ProductVariantResponse> variants) {
+    public CartItemResponse(Long cartId, String productName, String productImageUrl,
+                            Long productId, int quantity, Long variantId,
+                            String grams, Double price) {
         this.cartId = cartId;
         this.productName = productName;
         this.productImageUrl = productImageUrl;
         this.productId = productId;
         this.quantity = quantity;
-        this.variants = variants;
+        this.variantId = variantId;
+        this.grams = grams;
+        this.price = price;
     }
+
 
     // Getters and Setters
     public Long getCartId() {
@@ -61,11 +68,27 @@ public class CartItemResponse {
         this.quantity = quantity;
     }
 
-    public List<ProductVariantResponse> getVariants() {
-        return variants;
+    public Long getVariantId() {
+        return variantId;
     }
 
-    public void setVariants(List<ProductVariantResponse> variants) {
-        this.variants = variants;
+    public void setVariantId(Long variantId) {
+        this.variantId = variantId;
+    }
+
+    public String getGrams() {
+        return grams;
+    }
+
+    public void setGrams(String grams) {
+        this.grams = grams;
+    }
+
+    public double getPrice() {
+        return price;
+    }
+
+    public void setPrice(double price) {
+        this.price = price;
     }
 }

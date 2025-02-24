@@ -1,7 +1,6 @@
 package com.grocery.dto;
 
 import java.util.List;
-
 public class WishlistItemResponse {
 
     private Long wishlistId;
@@ -10,17 +9,18 @@ public class WishlistItemResponse {
     private String imageUrl;
     private String category;
     private List<ProductVariantResponse> variants; // Multiple grams & prices
+    private Long selectedVariantId; // Stores the selected variant
 
     // Constructor
-    public WishlistItemResponse(Long wishlistId, Long productId, String name, String imageUrl, String category, List<ProductVariantResponse> variants) {
+    public WishlistItemResponse(Long wishlistId, Long productId, String name, String imageUrl, String category, List<ProductVariantResponse> variants, Long selectedVariantId) {
         this.wishlistId = wishlistId;
         this.productId = productId;
         this.name = name;
         this.imageUrl = imageUrl;
         this.category = category;
         this.variants = variants;
+        this.selectedVariantId = selectedVariantId;
     }
-
     // Getters and Setters
     public Long getWishlistId() {
         return wishlistId;
@@ -68,5 +68,13 @@ public class WishlistItemResponse {
 
     public void setVariants(List<ProductVariantResponse> variants) {
         this.variants = variants;
+    }
+
+    public Long getSelectedVariantId() {
+        return selectedVariantId;
+    }
+
+    public void setSelectedVariantId(Long selectedVariantId) {
+        this.selectedVariantId = selectedVariantId;
     }
 }

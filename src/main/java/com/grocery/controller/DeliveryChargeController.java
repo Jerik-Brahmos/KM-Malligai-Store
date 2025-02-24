@@ -3,42 +3,42 @@ package com.grocery.controller;
 import com.grocery.model.DeliveryCharge;
 import com.grocery.service.DeliveryChargeService;
 import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
 
 import java.util.HashMap;
 import java.util.Map;
 
-@RestController
-@RequestMapping("/api/delivery-charge")
+@RestController  //  Use @RestController instead of @RequestMapping
+@RequestMapping("/api")
 public class DeliveryChargeController {
 
     @Autowired
     private DeliveryChargeService deliveryChargeService;
 
-    @GetMapping
+    @GetMapping("/delivery-charge") // Ensure correct endpoint
     public ResponseEntity<Map<String, Object>> getDeliveryCharge() {
         try {
-            // Fetch the latest delivery charge that is not deleted
             DeliveryCharge deliveryCharge = deliveryChargeService.getDeliveryChargeEntity();
 
-            if (deliveryCharge != null) {
-                // Return both deliveryChargeId and charge in a map
-                Map<String, Object> response = new HashMap<>();
-                response.put("deliveryChargeId", deliveryCharge.getDeliveryChargeId());
-                response.put("charge", deliveryCharge.getCharge());
+            Map<String, Object> response = new HashMap<>();
+            response.put("deliveryChargeId", deliveryCharge.getDeliveryChargeId());
+            response.put("charge", deliveryCharge.getCharge());
 
-                return ResponseEntity.ok(response);
-            } else {
-                return ResponseEntity.status(404).body(null); // No delivery charge found
-            }
+            return ResponseEntity.ok(response);
+
         } catch (Exception e) {
-            return ResponseEntity.status(500).body(null); // Return error if delivery charge not found
+            return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR)
+                    .body(Map.of("error", "Internal server error"));
         }
     }
 
 
-    @PostMapping
+
+
+
+    @PostMapping("/delivery-charge")
     public ResponseEntity<String> updateDeliveryCharge(@RequestBody DeliveryCharge deliveryCharge) {
         if (deliveryCharge.getCharge() < 0) {
             return ResponseEntity.badRequest().body("Invalid delivery charge value.");

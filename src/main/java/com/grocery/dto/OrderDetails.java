@@ -96,13 +96,31 @@ public class OrderDetails {
     // OrderItem inner class (can be modified as required)
     public static class OrderItem {
         private long productId;
-        private String productName; // Product name for admin view
+        private long variantId;
+        private String productName;
         private int quantity;
         private double price;
-        private String imageUrl; // New property for product image URL
+        private String imageUrl;
+        private String grams;
 
+    // Getters and Setters
 
-        // Getters and Setters
+        public String getGrams() {
+            return grams;
+        }
+
+        public void setGrams(String grams) {
+            this.grams = grams;
+        }
+
+        public long getVariantId() {
+            return variantId;
+        }
+
+        public void setVariantId(long variantId) {
+            this.variantId = variantId;
+        }
+
         public long getProductId() {
             return productId;
         }

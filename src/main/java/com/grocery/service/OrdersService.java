@@ -37,10 +37,9 @@ public class OrdersService {
     // Place an order and save it to the database
     public boolean placeOrder(OrderDetails orderDetails) {
         try {
-            // Fetch the DeliveryCharge using the deliveryChargeId from the orderDetails
             DeliveryCharge deliveryCharge = deliveryChargeRepository.findById(orderDetails.getDeliveryChargeId())
                     .orElseThrow(() -> new RuntimeException("Delivery charge not found"));
-            // Create and save the order
+
             Orders order = new Orders();
             order.setUserId(orderDetails.getUser());
             order.setShippingAddress(orderDetails.getShippingAddress());
@@ -50,23 +49,24 @@ public class OrdersService {
 
             Orders savedOrder = orderRepository.save(order);
 
-            // Save order items
             for (OrderDetails.OrderItem item : orderDetails.getItems()) {
                 OrderItems orderItem = new OrderItems();
                 orderItem.setOrder(savedOrder);
                 orderItem.setProductId(item.getProductId());
+                orderItem.setVariantId(item.getVariantId()); // 🔹 Storing variantId
                 orderItem.setQuantity(item.getQuantity());
                 orderItem.setPricePerItem(item.getPrice());
 
                 orderItemRepository.save(orderItem);
             }
 
-            return true;  // Return true if order is placed successfully
+            return true;
         } catch (Exception e) {
             e.printStackTrace();
-            return false; // Return false if there is any issue
+            return false;
         }
     }
+
 
     public List<OrderDetails> getAllOrderDetails() {
         // Fetch all orders with their associated order items
@@ -80,8 +80,8 @@ public class OrdersService {
 
         for (Object[] row : result) {
             try {
-                Orders order = (Orders) row[0];  // Assuming order is at index 0
-                OrderItems item = (OrderItems) row[1];  // Assuming order item is at index 1
+                Orders order = (Orders) row[0];  // Order at index 0
+                OrderItems item = (OrderItems) row[1];  // Order item at index 1
 
                 OrderDetails orderDetails = new OrderDetails();
                 orderDetails.setOrderId(order.getOrderId());
@@ -94,14 +94,23 @@ public class OrdersService {
                 // Collect the order items
                 List<OrderDetails.OrderItem> orderItems = new ArrayList<>();
                 OrderDetails.OrderItem orderItem = new OrderDetails.OrderItem();
+
                 orderItem.setProductId(item.getProductId());
                 orderItem.setQuantity(item.getQuantity());
                 orderItem.setPrice(item.getPricePerItem());
                 orderItem.setProductName(item.getProduct().getName());
                 orderItem.setImageUrl(item.getProduct().getImageUrl());  // Set image URL
 
-                orderItems.add(orderItem);
+                // ✅ Fetch and set the variant details
+                if (item.getProductVariant() != null) {
+                    orderItem.setVariantId(item.getProductVariant().getVariantId());
+                    orderItem.setGrams(item.getProductVariant().getGrams());
+                } else {
+                    orderItem.setVariantId(0);  // Default value if no variant exists
+                    orderItem.setGrams("N/A");
+                }
 
+                orderItems.add(orderItem);
                 orderDetails.setItems(orderItems);
 
                 orderDetailsList.add(orderDetails);
@@ -113,6 +122,7 @@ public class OrdersService {
 
         return orderDetailsList;
     }
+
 
 
 

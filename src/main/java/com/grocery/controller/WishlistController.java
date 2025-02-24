@@ -2,19 +2,18 @@ package com.grocery.controller;
 
 import com.grocery.dto.ProductVariantResponse;
 import com.grocery.dto.WishlistItemResponse;
+import com.grocery.model.ProductVariant;
 import com.grocery.model.WishlistItem;
 import com.grocery.model.Product;
 import com.grocery.repository.ProductRepository;
+import com.grocery.repository.ProductVariantRepository;
 import com.grocery.service.WishlistService;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
 
-import java.util.HashMap;
-import java.util.List;
-import java.util.Map;
-import java.util.Objects;
+import java.util.*;
 import java.util.stream.Collectors;
 
 @RestController
@@ -25,36 +24,56 @@ public class WishlistController {
     private WishlistService wishlistService;
 
     @Autowired
-    private ProductRepository productRepository; // Inject ProductRepository to fetch product details
+    private ProductRepository productRepository;
+
+    @Autowired
+    private ProductVariantRepository productVariantRepository;
 
     // Get all wishlist items for a user with product details
     @GetMapping("/{userId}")
     public List<WishlistItemResponse> getWishlist(@PathVariable String userId) {
         List<WishlistItem> wishlistItems = wishlistService.getWishlistByUserId(userId);
 
-        // Extract product IDs from wishlist items
-        List<Long> productIds = wishlistItems.stream()
-                .map(WishlistItem::getProductId)
-                .distinct()
-                .collect(Collectors.toList());
+        if (wishlistItems.isEmpty()) {
+            return Collections.emptyList();
+        }
 
-        // Fetch all products in a single query
-        Map<Long, Product> productMap = productRepository.findByProductIdIn(productIds)
-                .stream()
-                .collect(Collectors.toMap(Product::getProductId, product -> product));
+        // DEBUG: Print wishlist items and their variant IDs
+        for (WishlistItem item : wishlistItems) {
+            System.out.println("WishlistItem ID: " + item.getWishlistId() + ", Variant ID: " + item.getVariantId());
+        }
 
-        // Convert wishlist items to response
+        // Extract product and variant IDs
+        Set<Long> productIds = new HashSet<>();
+        Set<Long> variantIds = new HashSet<>();
+
+        for (WishlistItem item : wishlistItems) {
+            productIds.add(item.getProductId());
+            if (item.getVariantId() != null) { // Avoid null values
+                variantIds.add(item.getVariantId());
+            }
+        }
+
+        // Fetch product and variant details
+        Map<Long, Product> productMap = productRepository.findByProductIdIn(new ArrayList<>(productIds))
+                .stream().collect(Collectors.toMap(Product::getProductId, product -> product));
+
+        Map<Long, ProductVariant> variantMap = productVariantRepository.findByVariantIdIn(new ArrayList<>(variantIds))
+                .stream().collect(Collectors.toMap(ProductVariant::getVariantId, variant -> variant));
+
         return wishlistItems.stream()
                 .map(wishlistItem -> {
                     Product product = productMap.get(wishlistItem.getProductId());
-                    if (product == null) {
-                        return null;
-                    }
+                    if (product == null) return null;
 
-                    // Fetch product variants (grams & prices)
                     List<ProductVariantResponse> variants = product.getVariants().stream()
-                            .map(variant -> new ProductVariantResponse(variant.getVariantId(), variant.getGrams(), variant.getPrice()))
+                            .map(variant -> new ProductVariantResponse(
+                                    variant.getVariantId(),
+                                    variant.getGrams(),
+                                    variant.getPrice()))
                             .collect(Collectors.toList());
+
+                    System.out.println("Selected Variant for Wishlist ID " + wishlistItem.getWishlistId() + ": " + wishlistItem.getVariantId());
 
                     return new WishlistItemResponse(
                             wishlistItem.getWishlistId(),
@@ -62,12 +81,14 @@ public class WishlistController {
                             product.getName(),
                             product.getImageUrl(),
                             product.getCategory(),
-                            variants  // Multiple grams & prices
+                            variants,
+                            wishlistItem.getVariantId() // Ensure this is not null
                     );
                 })
                 .filter(Objects::nonNull)
                 .collect(Collectors.toList());
     }
+
 
 
     // Add an item to the wishlist
@@ -99,6 +120,28 @@ public class WishlistController {
             return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR).build();
         }
     }
+
+    @PutMapping("/update-variant")
+    public ResponseEntity<String> updateWishlistVariant(
+            @RequestParam String userId,
+            @RequestBody Map<String, Long> requestBody) {
+
+        Long productId = requestBody.get("productId");
+        Long variantId = requestBody.get("variantId");
+
+        if (productId == null || variantId == null) {
+            return ResponseEntity.status(HttpStatus.BAD_REQUEST).body("Missing productId or variantId");
+        }
+
+        boolean updated = wishlistService.updateVariant(userId, productId, variantId);
+
+        if (updated) {
+            return ResponseEntity.ok("Variant updated successfully");
+        } else {
+            return ResponseEntity.status(HttpStatus.NOT_FOUND).body("Wishlist item not found");
+        }
+    }
+
 
 
 }

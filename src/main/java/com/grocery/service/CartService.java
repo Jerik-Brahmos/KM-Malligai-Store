@@ -21,4 +21,9 @@ public class CartService {
     public List<CartItem> getCartItemsByUserId(String userId) {
         return cartRepository.findByUserId(userId);
     }
+
+    public int getCartQuantityByVariant(String userId, Long variantId) {
+        return cartRepository.getCartQuantityByUserIdAndVariantId(userId, variantId).orElse(0);
+    }
+
 }

@@ -2,12 +2,14 @@ package com.grocery.model;
 import com.fasterxml.jackson.annotation.JsonIgnoreProperties;
 import jakarta.persistence.*;
 import lombok.Data;
+import lombok.ToString;
 import net.minidev.json.annotate.JsonIgnore;
 
 @Data
 @Entity
 @Table(name = "product_variant")
 @JsonIgnoreProperties({"product"})
+@ToString(exclude = "product")
 public class ProductVariant {
 
     @Id

@@ -3,7 +3,6 @@ package com.grocery.model;
 import com.grocery.model.Product;
 import jakarta.persistence.*;
 import lombok.*;
-
 @Entity
 @Data
 @NoArgsConstructor
@@ -17,7 +16,7 @@ public class OrderItems {
 
     @ManyToOne
     @JoinColumn(name = "order_id", nullable = false)
-    private com.grocery.model.Orders order;
+    private Orders order;
 
     private Long productId;
 
@@ -25,8 +24,30 @@ public class OrderItems {
     @JoinColumn(name = "productId", referencedColumnName = "productId", insertable = false, updatable = false)
     private Product product;
 
+    private Long variantId; // 🔹 Added to store product variant
+
+    @ManyToOne
+    @JoinColumn(name = "variantId", referencedColumnName = "variantId", insertable = false, updatable = false)
+    private ProductVariant productVariant; // 🔹 Assuming a separate entity for product variants
+
     private Integer quantity;
     private Double pricePerItem;
+
+    public Long getVariantId() {
+        return variantId;
+    }
+
+    public void setVariantId(Long variantId) {
+        this.variantId = variantId;
+    }
+
+    public ProductVariant getProductVariant() {
+        return productVariant;
+    }
+
+    public void setProductVariant(ProductVariant productVariant) {
+        this.productVariant = productVariant;
+    }
 
     public Long getOrderItemId() {
         return orderItemId;

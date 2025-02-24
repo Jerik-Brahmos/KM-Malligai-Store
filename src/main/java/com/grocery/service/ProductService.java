@@ -9,10 +9,12 @@ import com.grocery.repository.ProductRepository;
 import com.grocery.repository.ProductVariantRepository;
 import com.grocery.util.DTOConverter;
 import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.cache.CacheManager;
 import org.springframework.cache.annotation.CacheEvict;
 import org.springframework.cache.annotation.CachePut;
 import org.springframework.cache.annotation.Cacheable;
 import org.springframework.data.domain.Page;
+import org.springframework.data.domain.PageImpl;
 import org.springframework.data.domain.PageRequest;
 import org.springframework.data.domain.Pageable;
 import org.springframework.data.jpa.repository.EntityGraph;
@@ -21,9 +23,7 @@ import org.springframework.scheduling.annotation.Scheduled;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
-import java.util.ArrayList;
-import java.util.List;
-import java.util.Optional;
+import java.util.*;
 import java.util.stream.Collectors;
 
 @Service
@@ -38,16 +38,25 @@ public class ProductService {
     @Autowired
     private ProductVariantRepository productVariantRepository;
 
+    @Autowired
+    private CacheManager cacheManager;
+
     // Get all products (excluding deleted ones) with caching
-    @Transactional(readOnly = true)
     @Cacheable(value = "products", unless = "#result == null || #result.isEmpty()")
     public List<ProductDTO> getAllProductsWithVariants() {
         List<Product> products = productRepository.findAllByIsDeletedFalse();
 
         // Convert to DTOs
-        return products.stream()
+        List<ProductDTO> productDTOs = products.stream()
                 .map(DTOConverter::convertToProductDTO)
                 .collect(Collectors.toList());
+
+        if (productDTOs.isEmpty()) {
+            // Clear cache if the result is empty
+            cacheManager.getCache("products").clear();
+        }
+
+        return productDTOs;
     }
 
 
@@ -56,42 +65,40 @@ public class ProductService {
     @Cacheable(value = "products", key = "#searchTerm + '-' + #page + '-' + #size",
             unless = "#result == null || #result.isEmpty()")
     public Page<ProductDTO> searchProductsWithVariants(String searchTerm, int page, int size) {
-        Pageable pageable = PageRequest.of(page, size);
-
         if (!searchTerm.endsWith("*")) {
             searchTerm = searchTerm + "*";
         }
 
-        Page<Object[]> results = productRepository.searchProductsWithVariants(searchTerm, pageable);
+        List<Object[]> results = productRepository.searchProductsWithVariants(searchTerm);
 
-        return results.map(this::mapToProductDTO);
-    }
+        // Group products manually to avoid duplicate entries
+        Map<Long, ProductDTO> productMap = new HashMap<>();
 
-    private ProductDTO mapToProductDTO(Object[] result) {
-        Long productId = ((Number) result[0]).longValue();
-        String name = (String) result[1];
-        String category = (String) result[2];
-        String imageUrl = (String) result[3];
+        for (Object[] row : results) {
+            Long productId = ((Number) row[0]).longValue();
+            String name = (String) row[1];
+            String category = (String) row[2];
+            String imageUrl = (String) row[3];
+            Long variantId = row[4] != null ? ((Number) row[4]).longValue() : null;
+            String grams = row[5] != null ? (String) row[5] : null;
+            Double price = row[6] != null ? ((Number) row[6]).doubleValue() : null;
 
-        // Create a ProductDTO object
-        ProductDTO productDTO = new ProductDTO();
-        productDTO.setProductId(productId);
-        productDTO.setName(name);
-        productDTO.setCategory(category);
-        productDTO.setImageUrl(imageUrl);
+            // Create a new product entry if it doesn't exist
+            productMap.putIfAbsent(productId, new ProductDTO(productId, name, category, imageUrl, new ArrayList<>()));
 
-        // Extract variant data
-        Long variantId = ((Number) result[4]).longValue();
-        String grams = (String) result[5];
-        double price = ((Number) result[6]).doubleValue();
+            // Add variant to the product if it exists
+            if (variantId != null) {
+                productMap.get(productId).getVariants().add(new ProductVariantResponse(variantId, grams, price));
+            }
+        }
 
-        // Create a list of variants
-        List<ProductVariantResponse> variants = new ArrayList<>();
-        variants.add(new ProductVariantResponse(variantId, grams, price));
+        // Convert map to list and apply pagination
+        List<ProductDTO> productDTOList = new ArrayList<>(productMap.values());
 
-        productDTO.setVariants(variants);
+        int start = Math.min(page * size, productDTOList.size());
+        int end = Math.min(start + size, productDTOList.size());
 
-        return productDTO;
+        return new PageImpl<>(productDTOList.subList(start, end), PageRequest.of(page, size), productDTOList.size());
     }
 
 
@@ -209,24 +216,86 @@ public class ProductService {
     }
 
     // Get filtered best-selling products (no caching as it's dynamic)
-    public List<Product> getFilteredBestSellingProducts(String search, String category) {
+    public List<ProductDTO> getFilteredBestSellingProducts(String search, String category) {
         List<Object[]> bestSellingProductsData = orderItemRepository.findBestSellingProducts();
-        List<Product> bestSellingProducts = new ArrayList<>();
+        List<ProductDTO> bestSellingProducts = new ArrayList<>();
+
         for (Object[] data : bestSellingProductsData) {
             Long productId = (Long) data[0];
             Optional<Product> productOpt = productRepository.findByProductIdAndIsDeletedFalse(productId);
+
             if (productOpt.isPresent()) {
                 Product product = productOpt.get();
+
+                // Check filters (search and category)
                 if ((search == null || product.getName().toLowerCase().contains(search.toLowerCase())) &&
                         (category == null || product.getCategory().equalsIgnoreCase(category))) {
-                    bestSellingProducts.add(product);
+
+                    // Fetch Variants
+                    List<ProductVariantResponse> variants = product.getVariants().stream()
+                            .map(variant -> new ProductVariantResponse(variant.getVariantId(), variant.getGrams(), variant.getPrice()))
+                            .collect(Collectors.toList());
+
+                    // Convert to DTO
+                    ProductDTO productDTO = new ProductDTO(
+                            product.getProductId(),
+                            product.getName(),
+                            product.getCategory(),
+                            product.getImageUrl(),
+                            variants
+                    );
+
+                    bestSellingProducts.add(productDTO);
                 }
             } else {
                 System.err.println("Product not found for productId: " + productId);
             }
         }
+
         return bestSellingProducts;
     }
+
+    public List<ProductDTO> getBestSellingProductVariant(String search, String category) {
+        List<Object[]> bestSellingVariantData = orderItemRepository.findBestSellingVariant();
+        List<ProductDTO> bestSellingProducts = new ArrayList<>();
+
+        for (Object[] data : bestSellingVariantData) {
+            Long variantId = (Long) data[0];
+            Optional<ProductVariant> variantOpt = productVariantRepository.findByVariantId(variantId);
+
+            if (variantOpt.isPresent()) {
+                ProductVariant variant = variantOpt.get();
+                Product product = variant.getProduct();
+
+                // Apply filters (search and category)
+                if ((search == null || product.getName().toLowerCase().contains(search.toLowerCase())) &&
+                        (category == null || product.getCategory().equalsIgnoreCase(category))) {
+
+                    // Only return the best-selling variant
+                    List<ProductVariantResponse> variants = Collections.singletonList(
+                            new ProductVariantResponse(variant.getVariantId(), variant.getGrams(), variant.getPrice())
+                    );
+
+                    // Convert to DTO
+                    ProductDTO productDTO = new ProductDTO(
+                            product.getProductId(),
+                            product.getName(),
+                            product.getCategory(),
+                            product.getImageUrl(),
+                            variants
+                    );
+
+                    bestSellingProducts.add(productDTO);
+                }
+            } else {
+                System.err.println("Variant not found for variantId: " + variantId);
+            }
+        }
+
+        return bestSellingProducts;
+    }
+
+
 
     // Get product categories with caching
     @Cacheable(value = "categories", unless = "#result == null || #result.isEmpty()")

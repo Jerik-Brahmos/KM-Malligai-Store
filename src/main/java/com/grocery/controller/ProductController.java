@@ -175,11 +175,11 @@ public class ProductController {
     }
 
     @GetMapping("/best-selling")
-    public ResponseEntity<List<Product>> getBestSellingProducts(
+    public ResponseEntity<List<ProductDTO>> getBestSellingProducts(
             @RequestParam(required = false) String search,
             @RequestParam(required = false) String category) {
 
-        List<Product> bestSellingProducts = productService.getFilteredBestSellingProducts(search, category);
+        List<ProductDTO> bestSellingProducts = productService.getFilteredBestSellingProducts(search, category);
 
         if (bestSellingProducts.isEmpty()) {
             return ResponseEntity.noContent().build();
@@ -188,6 +188,23 @@ public class ProductController {
                 .contentType(MediaType.APPLICATION_JSON)
                 .body(bestSellingProducts);
     }
+
+    @GetMapping("/best-selling-variant")
+    public ResponseEntity<List<ProductDTO>> getBestSellingProductVariant(
+            @RequestParam(required = false) String search,
+            @RequestParam(required = false) String category) {
+
+        List<ProductDTO> bestSellingVariants = productService.getBestSellingProductVariant(search, category);
+
+        if (bestSellingVariants.isEmpty()) {
+            return ResponseEntity.noContent().build();
+        }
+        return ResponseEntity.ok()
+                .contentType(MediaType.APPLICATION_JSON)
+                .body(bestSellingVariants);
+    }
+
+
 
     @GetMapping("/products/categories")
     public ResponseEntity<List<String>> getProductCategories() {
@@ -213,5 +230,8 @@ public class ProductController {
 
         return ResponseEntity.ok(productDTOs);
     }
+
+
+
 
 }

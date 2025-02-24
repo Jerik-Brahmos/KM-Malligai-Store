@@ -12,22 +12,29 @@ public class WishlistItem {
 
     @Id
     @GeneratedValue(strategy = GenerationType.IDENTITY)
-    private Long wishlistId;  // Unique identifier for the wishlist item
+    private Long wishlistId;
 
-    private String userId;  // User ID who owns the wishlist item
+    private String userId;
 
-    private Long productId;  // Product ID, linking the wishlist item to the product
+    private Long productId;
+
+    private Long variantId;
 
     @ManyToOne
     @JoinColumn(name = "productId", referencedColumnName = "productId", insertable = false, updatable = false)
     private Product product;  // Many WishlistItems can belong to one Product (but not the other way around)
 
+    @ManyToOne
+    @JoinColumn(name = "variantId", referencedColumnName = "variantId", insertable = false, updatable = false)
+    private ProductVariant productVariant;
+
     // Constructors, getters, and setters
     public WishlistItem() {}
 
-    public WishlistItem(String userId, Long productId) {
+    public WishlistItem(String userId, Long productId, Long variantId) {
         this.userId = userId;
         this.productId = productId;
+        this.variantId = variantId;
     }
 
     public Long getWishlistId() {
@@ -60,5 +67,21 @@ public class WishlistItem {
 
     public void setProduct(Product product) {
         this.product = product;
+    }
+
+    public Long getVariantId() {
+        return variantId;
+    }
+
+    public void setVariantId(Long variantId) {
+        this.variantId = variantId;
+    }
+
+    public ProductVariant getProductVariant() {
+        return productVariant;
+    }
+
+    public void setProductVariant(ProductVariant productVariant) {
+        this.productVariant = productVariant;
     }
 }

@@ -9,6 +9,7 @@ import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
 
 import java.util.List;
+import java.util.Map;
 import java.util.Optional;
 
 @RestController
@@ -30,14 +31,21 @@ public class DiscountController {
     }
 
     @GetMapping("/{code}")
-    public ResponseEntity<?> getDiscountDetails(@PathVariable String code) {
+    public ResponseEntity<Map<String, String>> getDiscountDetails(@PathVariable String code) {
         Optional<Discounts> discount = discountRepository.findByCode(code);
+
         if (discount.isPresent()) {
-            return ResponseEntity.ok(discount.get());
+            return ResponseEntity.ok(Map.of(
+                    "code", discount.get().getCode(),
+                    "status", discount.get().getStatus(),
+                    "discountPercentage", String.valueOf(discount.get().getDiscountPercentage()),
+                    "fixedDiscount", String.valueOf(discount.get().getFixedDiscount())
+            ));
         } else {
-            return ResponseEntity.status(404).body("Promo code not found.");
+            return ResponseEntity.status(404).body(Map.of("error", "Promo code not found."));
         }
     }
+
 
     @GetMapping("/discounts")
     public ResponseEntity<List<Discounts>> getAllDiscounts() {

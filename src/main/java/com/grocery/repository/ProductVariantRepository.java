@@ -7,6 +7,7 @@ import org.springframework.stereotype.Repository;
 import org.springframework.transaction.annotation.Transactional;
 
 import java.util.List;
+import java.util.Optional;
 
 @Repository
 public interface ProductVariantRepository extends JpaRepository<ProductVariant, Long> {
@@ -15,4 +16,10 @@ public interface ProductVariantRepository extends JpaRepository<ProductVariant, 
 
     @Transactional
     void deleteByProduct(Product product);
+
+    List<ProductVariant> findByVariantIdIn(List<Long> variantIds);
+
+    Optional<ProductVariant> findByVariantId(Long variantId);
+
+
 }

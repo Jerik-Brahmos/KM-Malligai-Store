@@ -16,12 +16,19 @@
 
         private String userId; // User ID who owns the cart item
 
-        private Long productId;
-        private int quantity;// Product ID, linking the cart item to the product
+        private Long productId;  // Product ID, linking the cart item to the product
+
+        private Long variantId;  // Variant ID for the selected product variation
+
+        private int quantity;  // Quantity of the product in the cart
 
         @ManyToOne
         @JoinColumn(name = "productId", referencedColumnName = "productId", insertable = false, updatable = false)
-        private Product product;  // Many CartItems can belong to one Product (but not the other way around)
+        private Product product;  // Many CartItems can belong to one Product
+
+        @ManyToOne
+        @JoinColumn(name = "variantId", referencedColumnName = "variantId", insertable = false, updatable = false)
+        private ProductVariant productVariant;
 
         // Getters and Setters
         public Long getCartId() {
@@ -62,5 +69,21 @@
 
         public void setProduct(Product product) {
             this.product = product;
+        }
+
+        public Long getVariantId() {
+            return variantId;
+        }
+
+        public void setVariantId(Long variantId) {
+            this.variantId = variantId;
+        }
+
+        public ProductVariant getProductVariant() {
+            return productVariant;
+        }
+
+        public void setProductVariant(ProductVariant productVariant) {
+            this.productVariant = productVariant;
         }
     }

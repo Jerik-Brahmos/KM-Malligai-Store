@@ -25,8 +25,9 @@ public interface OrderRepository extends JpaRepository<Orders, Long> {
     // Custom query to find orders by userId
     public List<Orders> findByUserId(User user);
 
-    @Query("SELECT SUM(o.totalAmount) FROM Orders o WHERE o.status = 'delivered'")
+    @Query("SELECT COALESCE(SUM(o.totalAmount), 0.0) FROM Orders o WHERE o.status = 'delivered'")
     Double sumRevenue();
+
 
 
 

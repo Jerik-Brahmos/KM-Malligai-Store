@@ -26,17 +26,22 @@ public interface ProductRepository extends JpaRepository<Product, Long> {
     List<Product> findByCategoryWithVariants(@Param("categoryName") String categoryName);
 
 
-    @Query(value = "SELECT DISTINCT p.product_id, p.name, p.category, p.image_url, v.variant_id, v.grams AS variant_grams, v.price " +
-            "FROM product p " +
-            "LEFT JOIN product_variant v ON p.product_id = v.product_id " +
-            "WHERE p.is_deleted = false " +
-            "AND MATCH(p.name, p.category) AGAINST(:searchTerm IN BOOLEAN MODE)",
-            countQuery = "SELECT COUNT(*) FROM product p " +
-                    "WHERE p.is_deleted = false " +
-                    "AND MATCH(p.name, p.category) AGAINST(:searchTerm IN BOOLEAN MODE)",
+    @Query(value = """
+        SELECT
+            p.product_id AS productId,
+            p.name,
+            p.category,
+            p.image_url AS imageUrl,
+            v.variant_id AS variantId,
+            v.grams,
+            v.price
+        FROM product p
+        LEFT JOIN product_variant v ON p.product_id = v.product_id
+        WHERE p.is_deleted = false
+        AND MATCH(p.name, p.category) AGAINST(:searchTerm IN BOOLEAN MODE)
+        """,
             nativeQuery = true)
-    Page<Object[]> searchProductsWithVariants(@Param("searchTerm") String searchTerm, Pageable pageable);
-
+    List<Object[]> searchProductsWithVariants(@Param("searchTerm") String searchTerm);
 
     @Query("UPDATE Product p SET p.isDeleted = true WHERE p.productId = :id")
     void softDeleteProduct(Long id);
@@ -64,6 +69,9 @@ public interface ProductRepository extends JpaRepository<Product, Long> {
 
     @Query("SELECT DISTINCT p FROM Product p LEFT JOIN FETCH p.variants WHERE p.isDeleted = false")
     List<Product> findAllByIsDeletedFalse();
+
+
+
 
 
 }
