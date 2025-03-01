@@ -5,13 +5,11 @@ import lombok.Data;
 import lombok.ToString;
 import net.minidev.json.annotate.JsonIgnore;
 
-@Data
 @Entity
+@Data
 @Table(name = "product_variant")
 @JsonIgnoreProperties({"product"})
-@ToString(exclude = "product")
 public class ProductVariant {
-
     @Id
     @GeneratedValue(strategy = GenerationType.IDENTITY)
     private Long variantId;
@@ -19,13 +17,15 @@ public class ProductVariant {
     @JsonIgnore
     @ManyToOne
     @JoinColumn(name = "product_id", nullable = false)
-    private Product product;  // Reference to Product entity
+    private Product product;
 
-    private String grams;  // e.g., "500g", "1kg"
-    private double price;  // Price for this variant
+    private String grams;
+    private double price;
+
+    @Column(nullable = false)
+    private boolean isDeleted = false; // Add this field
 
     public ProductVariant() {}
-
     public ProductVariant(Product product, String grams, double price) {
         this.product = product;
         this.grams = grams;
@@ -62,6 +62,14 @@ public class ProductVariant {
 
     public void setProduct(Product product) {
         this.product = product;
+    }
+
+    public boolean isDeleted() {
+        return isDeleted;
+    }
+
+    public void setDeleted(boolean deleted) {
+        isDeleted = deleted;
     }
 }
 

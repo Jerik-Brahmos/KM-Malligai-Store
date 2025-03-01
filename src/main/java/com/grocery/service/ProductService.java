@@ -45,14 +45,11 @@ public class ProductService {
     @Cacheable(value = "products", unless = "#result == null || #result.isEmpty()")
     public List<ProductDTO> getAllProductsWithVariants() {
         List<Product> products = productRepository.findAllByIsDeletedFalse();
-
-        // Convert to DTOs
         List<ProductDTO> productDTOs = products.stream()
                 .map(DTOConverter::convertToProductDTO)
                 .collect(Collectors.toList());
 
         if (productDTOs.isEmpty()) {
-            // Clear cache if the result is empty
             cacheManager.getCache("products").clear();
         }
 
@@ -104,10 +101,10 @@ public class ProductService {
 
 
     // Get a product by ID with caching
-    @Transactional(readOnly = true)  // Ensure read-only transaction for performance optimization
+    @Transactional(readOnly = true)
     @Cacheable(value = "product", key = "#id", unless = "#result == null || #result.isDeleted()")
     public Optional<Product> getProductById(Long id) {
-        return productRepository.findByIdAndNotDeleted(id); // Fetch directly with filtering logic
+        return productRepository.findByIdAndNotDeleted(id);
     }
 
 
@@ -122,6 +119,7 @@ public class ProductService {
         List<ProductVariant> variants = new ArrayList<>();
         for (int i = 0; i < gramsList.size(); i++) {
             ProductVariant variant = new ProductVariant(savedProduct, gramsList.get(i), priceList.get(i));
+            variant.setDeleted(false);
             variants.add(variant);
         }
 
@@ -132,37 +130,58 @@ public class ProductService {
     }
 
     // Update a product and update cache
+    @Transactional
     @CachePut(value = "product", key = "#id")
-    public Product updateProduct(Long id, String name, String category, String imageUrl, List<String> grams, List<Double> prices) {
+    @CacheEvict(value = "products", allEntries = true) // Add this
+    public Product updateProduct(Long id, String name, String category, String imageUrl,
+                                 List<ProductVariantResponse> variants) {
+        // Existing updateProduct code...
         Product existingProduct = productRepository.findById(id)
                 .orElseThrow(() -> new RuntimeException("Product not found"));
 
-        // Retain existing image URL if no new image is uploaded
         if (imageUrl == null) {
             imageUrl = existingProduct.getImageUrl();
         }
 
-        // Update product fields
         existingProduct.setName(name);
         existingProduct.setCategory(category);
         existingProduct.setImageUrl(imageUrl);
 
-        // Delete old variants
-        productVariantRepository.deleteByProduct(existingProduct);
+        List<ProductVariant> currentVariants = existingProduct.getVariants();
+        List<ProductVariantResponse> newVariants = variants != null ? variants : new ArrayList<>();
 
-        // Add new variants
-        List<ProductVariant> variants = new ArrayList<>();
-        for (int i = 0; i < grams.size(); i++) {
-            ProductVariant variant = new ProductVariant(existingProduct, grams.get(i), prices.get(i));
-            variants.add(variant);
+        Map<String, ProductVariantResponse> incomingVariantMap = newVariants.stream()
+                .collect(Collectors.toMap(
+                        ProductVariantResponse::getGrams,
+                        variant -> variant,
+                        (v1, v2) -> v1
+                ));
+
+        Iterator<ProductVariant> iterator = currentVariants.iterator();
+        while (iterator.hasNext()) {
+            ProductVariant existingVariant = iterator.next();
+            ProductVariantResponse matchingIncoming = incomingVariantMap.get(existingVariant.getGrams());
+            if (matchingIncoming == null) {
+                existingVariant.setDeleted(true);
+            } else {
+                existingVariant.setPrice(matchingIncoming.getPrice());
+                existingVariant.setDeleted(false);
+                incomingVariantMap.remove(existingVariant.getGrams());
+            }
         }
 
-        // Save updated product and variants
-        productVariantRepository.saveAll(variants);
-        existingProduct.setVariants(variants);
+        for (ProductVariantResponse newVariant : incomingVariantMap.values()) {
+            ProductVariant variant = new ProductVariant();
+            variant.setProduct(existingProduct);
+            variant.setGrams(newVariant.getGrams());
+            variant.setPrice(newVariant.getPrice());
+            variant.setDeleted(false);
+            currentVariants.add(variant);
+        }
 
         return productRepository.save(existingProduct);
     }
+
 
     // Soft delete a product and evict cache
     @CacheEvict(value = {"products", "product"}, allEntries = true)
@@ -233,6 +252,7 @@ public class ProductService {
 
                     // Fetch Variants
                     List<ProductVariantResponse> variants = product.getVariants().stream()
+                            .filter(variant -> !variant.isDeleted())
                             .map(variant -> new ProductVariantResponse(variant.getVariantId(), variant.getGrams(), variant.getPrice()))
                             .collect(Collectors.toList());
 
@@ -265,6 +285,9 @@ public class ProductService {
 
             if (variantOpt.isPresent()) {
                 ProductVariant variant = variantOpt.get();
+                if (variant.isDeleted()) {
+                    continue;
+                }
                 Product product = variant.getProduct();
 
                 // Apply filters (search and category)

@@ -27,7 +27,7 @@ public class Product {
     @Column(nullable = false)
     private boolean isDeleted;
 
-    @OneToMany(mappedBy = "product", cascade = CascadeType.ALL, orphanRemoval = true, fetch = FetchType.EAGER)
+    @OneToMany(mappedBy = "product", cascade = CascadeType.ALL, fetch = FetchType.EAGER)
     private List<ProductVariant> variants = new ArrayList<>();
     // No-arg constructor
     public Product() {

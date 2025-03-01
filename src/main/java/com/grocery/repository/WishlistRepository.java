@@ -13,17 +13,17 @@ import java.util.Optional;
 
 @Repository
 public interface WishlistRepository extends JpaRepository<WishlistItem, Long> {
-    List<WishlistItem> findByUserId(String userId);
 
+    // Fetch wishlist items by user ID, excluding items with soft-deleted products
+    @Query("SELECT w FROM WishlistItem w JOIN w.product p WHERE w.userId = :userId AND p.isDeleted = false")
+    List<WishlistItem> findByUserId(@Param("userId") String userId);
+
+    // Count wishlist items for a user, excluding those with soft-deleted products
     @Transactional(readOnly = true)
-    @Query("SELECT COUNT(1) FROM WishlistItem w WHERE w.userId = :userId")
+    @Query("SELECT COUNT(w) FROM WishlistItem w JOIN w.product p WHERE w.userId = :userId AND p.isDeleted = false")
     int countByUserId(@Param("userId") String userId);
 
-    @Query("SELECT w FROM WishlistItem w WHERE w.userId = :userId AND w.productId = :productId")
+    // Fetch a wishlist item by user ID and product ID, ensuring the product is not soft-deleted
+    @Query("SELECT w FROM WishlistItem w JOIN w.product p WHERE w.userId = :userId AND w.productId = :productId AND p.isDeleted = false")
     Optional<WishlistItem> findByUserIdAndProductId(@Param("userId") String userId, @Param("productId") Long productId);
-
-
-
-
-
 }

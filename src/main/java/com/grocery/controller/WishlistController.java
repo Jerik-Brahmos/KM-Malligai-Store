@@ -54,19 +54,25 @@ public class WishlistController {
             }
         }
 
-        // Fetch product and variant details
+        // Fetch product and variant details, excluding soft-deleted ones
         Map<Long, Product> productMap = productRepository.findByProductIdIn(new ArrayList<>(productIds))
-                .stream().collect(Collectors.toMap(Product::getProductId, product -> product));
+                .stream()
+                .filter(product -> !product.isDeleted()) // Filter out soft-deleted products
+                .collect(Collectors.toMap(Product::getProductId, product -> product));
 
         Map<Long, ProductVariant> variantMap = productVariantRepository.findByVariantIdIn(new ArrayList<>(variantIds))
-                .stream().collect(Collectors.toMap(ProductVariant::getVariantId, variant -> variant));
+                .stream()
+                .filter(variant -> !variant.isDeleted()) // Filter out soft-deleted variants
+                .collect(Collectors.toMap(ProductVariant::getVariantId, variant -> variant));
 
         return wishlistItems.stream()
                 .map(wishlistItem -> {
                     Product product = productMap.get(wishlistItem.getProductId());
-                    if (product == null) return null;
+                    if (product == null) return null; // Skip if product is soft-deleted or not found
 
+                    // Filter out soft-deleted variants from the product's variant list
                     List<ProductVariantResponse> variants = product.getVariants().stream()
+                            .filter(variant -> !variant.isDeleted()) // Ensure only active variants
                             .map(variant -> new ProductVariantResponse(
                                     variant.getVariantId(),
                                     variant.getGrams(),
@@ -89,13 +95,24 @@ public class WishlistController {
                 .collect(Collectors.toList());
     }
 
-
-
     // Add an item to the wishlist
     @PostMapping
-    public WishlistItem addToWishlist(@RequestBody WishlistItem wishlistItem) {
+    public ResponseEntity<WishlistItem> addToWishlist(@RequestBody WishlistItem wishlistItem) {
+        // Validate that the product and variant (if provided) are not soft-deleted
+        Optional<Product> productOpt = productRepository.findByProductIdAndIsDeletedFalse(wishlistItem.getProductId());
+        if (!productOpt.isPresent()) {
+            return ResponseEntity.status(HttpStatus.BAD_REQUEST).body(null); // Product is soft-deleted or not found
+        }
+
+        if (wishlistItem.getVariantId() != null) {
+            Optional<ProductVariant> variantOpt = productVariantRepository.findByVariantId(wishlistItem.getVariantId());
+            if (!variantOpt.isPresent() || variantOpt.get().isDeleted()) {
+                return ResponseEntity.status(HttpStatus.BAD_REQUEST).body(null); // Variant is soft-deleted or not found
+            }
+        }
+
         WishlistItem savedItem = wishlistService.addToWishlist(wishlistItem);
-        return savedItem;
+        return ResponseEntity.ok(savedItem);
     }
 
     // Remove an item from the wishlist
@@ -125,7 +142,6 @@ public class WishlistController {
     public ResponseEntity<String> updateWishlistVariant(
             @RequestParam String userId,
             @RequestBody Map<String, Long> requestBody) {
-
         Long productId = requestBody.get("productId");
         Long variantId = requestBody.get("variantId");
 
@@ -133,15 +149,22 @@ public class WishlistController {
             return ResponseEntity.status(HttpStatus.BAD_REQUEST).body("Missing productId or variantId");
         }
 
-        boolean updated = wishlistService.updateVariant(userId, productId, variantId);
+        // Validate that the product and variant are not soft-deleted
+        Optional<Product> productOpt = productRepository.findByProductIdAndIsDeletedFalse(productId);
+        if (!productOpt.isPresent()) {
+            return ResponseEntity.status(HttpStatus.BAD_REQUEST).body("Product is soft-deleted or not found");
+        }
 
+        Optional<ProductVariant> variantOpt = productVariantRepository.findByVariantId(variantId);
+        if (!variantOpt.isPresent() || variantOpt.get().isDeleted()) {
+            return ResponseEntity.status(HttpStatus.BAD_REQUEST).body("Variant is soft-deleted or not found");
+        }
+
+        boolean updated = wishlistService.updateVariant(userId, productId, variantId);
         if (updated) {
             return ResponseEntity.ok("Variant updated successfully");
         } else {
             return ResponseEntity.status(HttpStatus.NOT_FOUND).body("Wishlist item not found");
         }
     }
-
-
-
 }

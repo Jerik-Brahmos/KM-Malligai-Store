@@ -18,6 +18,7 @@ public class DTOConverter {
                 product.getCategory(),
                 product.getImageUrl(),
                 (product.getVariants() != null) ? product.getVariants().stream()
+                        .filter(variant -> !variant.isDeleted()) // Filter out soft-deleted variants
                         .map(DTOConverter::convertToProductVariantResponse)
                         .collect(Collectors.toList())
                         : Collections.emptyList() // Prevents null list issue

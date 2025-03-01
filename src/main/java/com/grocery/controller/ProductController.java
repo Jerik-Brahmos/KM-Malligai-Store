@@ -1,6 +1,9 @@
 package com.grocery.controller;
 
+import com.fasterxml.jackson.core.type.TypeReference;
+import com.fasterxml.jackson.databind.ObjectMapper;
 import com.grocery.dto.ProductDTO;
+import com.grocery.dto.ProductVariantResponse;
 import com.grocery.model.Product;
 import com.grocery.repository.ProductRepository;
 import com.grocery.service.ImageService;
@@ -19,6 +22,7 @@ import javax.servlet.http.HttpServletRequest;
 import java.io.IOException;
 import java.util.List;
 import java.util.Optional;
+import java.util.stream.Collectors;
 
 @RestController
 @CrossOrigin(origins = {"http://localhost:3000", "https://grocery-shop-ee0ac.web.app", "https://grocery-shop-ee0ac.firebaseapp.com"})
@@ -33,6 +37,9 @@ public class ProductController {
 
     @Autowired
     private ImageService imageService;
+
+    @Autowired
+    private ObjectMapper objectMapper;
 
     // Get all products
     @GetMapping
@@ -54,16 +61,30 @@ public class ProductController {
 
 
     @GetMapping("/edit/products/{id}")
-    public ResponseEntity<Product> getProductById(@PathVariable Long id) {
+    public ResponseEntity<ProductDTO> getProductById(@PathVariable Long id) {
         try {
             Optional<Product> productOptional = productService.getProductById(id);
             if (productOptional.isPresent()) {
-                return ResponseEntity.ok(productOptional.get());
+                Product product = productOptional.get();
+                ProductDTO productDTO = new ProductDTO(
+                        product.getProductId(),
+                        product.getName(),
+                        product.getCategory(),
+                        product.getImageUrl(),
+                        product.getVariants().stream()
+                                .filter(variant -> !variant.isDeleted()) // Filter out soft-deleted variants
+                                .map(variant -> new ProductVariantResponse(
+                                        variant.getVariantId(),
+                                        variant.getGrams(),
+                                        variant.getPrice()
+                                ))
+                                .collect(Collectors.toList())
+                );
+                return ResponseEntity.ok(productDTO);
             } else {
                 return ResponseEntity.status(HttpStatus.NOT_FOUND).body(null);
             }
         } catch (Exception e) {
-            // Log the error for debugging
             e.printStackTrace();
             return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR).body(null);
         }
@@ -106,16 +127,19 @@ public class ProductController {
             @RequestParam(value = "file", required = false) MultipartFile file,
             @RequestParam String name,
             @RequestParam String category,
-            @RequestParam List<String> grams,
-            @RequestParam List<Double> prices) throws IOException {
+            @RequestParam String variants) throws IOException {
 
         String imageUrl = null;
         if (file != null && !file.isEmpty()) {
             imageUrl = imageService.uploadImage(file.getBytes(), file.getOriginalFilename());
         }
 
+        // Parse variants JSON into a list of ProductVariantResponse
+        List<ProductVariantResponse> variantList = objectMapper.readValue(variants,
+                new TypeReference<List<ProductVariantResponse>>() {});
+
         // Update the product with new details
-        Product updatedProduct = productService.updateProduct(id, name, category, imageUrl, grams, prices);
+        Product updatedProduct = productService.updateProduct(id, name, category, imageUrl, variantList);
         return ResponseEntity.ok(updatedProduct);
     }
 
