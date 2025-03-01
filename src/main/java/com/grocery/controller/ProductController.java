@@ -159,26 +159,26 @@ public class ProductController {
         }
     }
 
-        @PostMapping("/addproduct")
-        public ResponseEntity<Product> addProduct(
-                @RequestParam("file") MultipartFile file,
-                @RequestParam("name") String name,
-                @RequestParam("category") String category,
-                @RequestParam("variants") List<String> gramsList,
-                @RequestParam("prices") List<Double> priceList
-        ) {
-            try {
-                // Upload image
-                String imageUrl = imageService.uploadImage(file.getBytes(), file.getOriginalFilename());
+    @PostMapping("/addproduct")
+    public ResponseEntity<Product> addProduct(
+            @RequestParam("file") MultipartFile file,
+            @RequestParam("name") String name,
+            @RequestParam("category") String category,
+            @RequestParam("grams") List<String> gramsList, // Changed from "variants" to "grams"
+            @RequestParam("prices") List<Double> priceList
+    ) {
+        try {
+            // Upload image
+            String imageUrl = imageService.uploadImage(file.getBytes(), file.getOriginalFilename());
 
-                // Create product and variants
-                Product savedProduct = productService.createProduct(name, category, imageUrl, gramsList, priceList);
+            // Create product and variants
+            Product savedProduct = productService.createProduct(name, category, imageUrl, gramsList, priceList);
 
-                return ResponseEntity.status(HttpStatus.CREATED).body(savedProduct);
-            } catch (Exception e) {
-                return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR).build();
-            }
+            return ResponseEntity.status(HttpStatus.CREATED).body(savedProduct);
+        } catch (Exception e) {
+            return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR).build();
         }
+    }
 
 
     @RequestMapping("/checkCookies")
