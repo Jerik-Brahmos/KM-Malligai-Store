@@ -17,6 +17,7 @@ import java.text.SimpleDateFormat;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.Optional;
+import java.util.stream.Collectors;
 
 @Service
 public class OrdersService {
@@ -226,27 +227,31 @@ public class OrdersService {
 
     public String generateCsvReport(List<Orders> orders) {
         StringWriter writer = new StringWriter();
-        writer.append("Order ID, User, Order Date, Total Amount, Status, Product, Variant, Quantity, Price Per Item\n");
+        writer.append("Order ID, User, Order Date, Total Amount, Status, Products\n");
 
         double totalRevenue = 0.0;
 
         for (Orders order : orders) {
-            for (OrderItems item : order.getOrderItems()) {
-                writer.append(order.getOrderId().toString()).append(",")
-                        .append(order.getUserId().getDisplayName()).append(",")
-                        .append(new SimpleDateFormat("yyyy-MM-dd HH:mm:ss").format(order.getOrderDate())).append(",")
-                        .append(order.getTotalAmount().toString()).append(",")
-                        .append(order.getStatus()).append(",")
-                        .append(item.getProduct().getName()).append(",")
-                        .append(item.getProductVariant() != null ? item.getProductVariant().getGrams() : "N/A").append(",")
-                        .append(item.getQuantity().toString()).append(",")
-                        .append(item.getPricePerItem().toString()).append("\n");
+            String orderDate = new SimpleDateFormat("yyyy-MM-dd HH:mm:ss").format(order.getOrderDate());
 
-                totalRevenue += item.getQuantity() * item.getPricePerItem();
-            }
+            // Merge products into a single column
+            String products = order.getOrderItems().stream()
+                    .map(item -> item.getProduct().getName() + " (" +
+                            (item.getProductVariant() != null ? item.getProductVariant().getGrams() : "N/A") + ", x" +
+                            item.getQuantity() + ")")
+                    .collect(Collectors.joining(" | "));
+
+            writer.append(order.getOrderId().toString()).append(",")
+                    .append(order.getUserId().getDisplayName()).append(",")
+                    .append(orderDate).append(",")
+                    .append(order.getTotalAmount().toString()).append(",")
+                    .append(order.getStatus()).append(",")
+                    .append(products).append("\n");
+
+            totalRevenue += order.getTotalAmount();
         }
 
-        writer.append("\nTotal Revenue: ").append(String.valueOf(totalRevenue)).append("\n");
+        writer.append("\nTotal Revenue: , , , ").append(String.valueOf(totalRevenue)).append("\n");
         return writer.toString();
     }
 
