@@ -12,6 +12,8 @@ import com.grocery.repository.UserRepository;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Service;
 
+import java.io.StringWriter;
+import java.text.SimpleDateFormat;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.Optional;
@@ -218,5 +220,34 @@ public class OrdersService {
         return orderRepository.sumRevenue();
     }
 
+    public List<Orders> getTodaysOrders() {
+        return orderRepository.findTodaysOrders();
+    }
+
+    public String generateCsvReport(List<Orders> orders) {
+        StringWriter writer = new StringWriter();
+        writer.append("Order ID, User, Order Date, Total Amount, Status, Product, Variant, Quantity, Price Per Item\n");
+
+        double totalRevenue = 0.0;
+
+        for (Orders order : orders) {
+            for (OrderItems item : order.getOrderItems()) {
+                writer.append(order.getOrderId().toString()).append(",")
+                        .append(order.getUserId().getDisplayName()).append(",")
+                        .append(new SimpleDateFormat("yyyy-MM-dd HH:mm:ss").format(order.getOrderDate())).append(",")
+                        .append(order.getTotalAmount().toString()).append(",")
+                        .append(order.getStatus()).append(",")
+                        .append(item.getProduct().getName()).append(",")
+                        .append(item.getProductVariant() != null ? item.getProductVariant().getGrams() : "N/A").append(",")
+                        .append(item.getQuantity().toString()).append(",")
+                        .append(item.getPricePerItem().toString()).append("\n");
+
+                totalRevenue += item.getQuantity() * item.getPricePerItem();
+            }
+        }
+
+        writer.append("\nTotal Revenue: ").append(String.valueOf(totalRevenue)).append("\n");
+        return writer.toString();
+    }
 
 }
