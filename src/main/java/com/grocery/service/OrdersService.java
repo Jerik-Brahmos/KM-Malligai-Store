@@ -14,9 +14,7 @@ import org.springframework.stereotype.Service;
 
 import java.io.StringWriter;
 import java.text.SimpleDateFormat;
-import java.util.ArrayList;
-import java.util.List;
-import java.util.Optional;
+import java.util.*;
 import java.util.stream.Collectors;
 
 @Service
@@ -227,31 +225,66 @@ public class OrdersService {
 
     public String generateCsvReport(List<Orders> orders) {
         StringWriter writer = new StringWriter();
-        writer.append("Order ID, User, Order Date, Total Amount, Status, Products\n");
+        writer.append("Order ID, User, Order Date, Total Amount, Status, Product, Quantity\n");
 
         double totalRevenue = 0.0;
 
-        for (Orders order : orders) {
-            String orderDate = new SimpleDateFormat("yyyy-MM-dd HH:mm:ss").format(order.getOrderDate());
+        // Group orders by Order ID
+        Map<Long, List<Orders>> groupedOrders = orders.stream()
+                .collect(Collectors.groupingBy(Orders::getOrderId));
 
-            // Merge products into a single column
-            String products = order.getOrderItems().stream()
-                    .map(item -> item.getProduct().getName() + " (" +
-                            (item.getProductVariant() != null ? item.getProductVariant().getGrams() : "N/A") + ", x" +
-                            item.getQuantity() + ")")
-                    .collect(Collectors.joining(" | "));
+        for (Map.Entry<Long, List<Orders>> entry : groupedOrders.entrySet()) {
+            List<Orders> orderGroup = entry.getValue();
+            Orders firstOrder = orderGroup.get(0); // Take first order as reference
 
-            writer.append(order.getOrderId().toString()).append(",")
-                    .append(order.getUserId().getDisplayName()).append(",")
-                    .append(orderDate).append(",")
-                    .append(order.getTotalAmount().toString()).append(",")
-                    .append(order.getStatus()).append(",")
-                    .append(products).append("\n");
+            // Calculate total amount for this order ID
+            double groupTotalAmount = orderGroup.stream()
+                    .mapToDouble(Orders::getTotalAmount)
+                    .sum();
 
-            totalRevenue += order.getTotalAmount();
+            // Format order date
+            String orderDate = new SimpleDateFormat("yyyy-MM-dd HH:mm:ss")
+                    .format(firstOrder.getOrderDate());
+
+            // Use the most recent status
+            String status = orderGroup.stream()
+                    .max(Comparator.comparing(Orders::getOrderDate))
+                    .map(Orders::getStatus)
+                    .orElse(firstOrder.getStatus());
+
+            // Get all order items for this order ID
+            List<OrderItems> allItems = orderGroup.stream()
+                    .flatMap(order -> order.getOrderItems().stream())
+                    .collect(Collectors.toList());
+
+            // Write rows for each product
+            for (int i = 0; i < allItems.size(); i++) {
+                OrderItems item = allItems.get(i);
+                String product = item.getProduct().getName() + " (" +
+                        (item.getProductVariant() != null ? item.getProductVariant().getGrams() : "N/A") + ")";
+                String quantity = "x" + item.getQuantity();
+
+                if (i == 0) {
+                    // First row for this Order ID - include all details
+                    writer.append(firstOrder.getOrderId().toString()).append(",")
+                            .append(firstOrder.getUserId().getDisplayName()).append(",")
+                            .append(orderDate).append(",")
+                            .append(String.valueOf(groupTotalAmount)).append(",")
+                            .append(status).append(",");
+                } else {
+                    // Subsequent rows - leave first columns empty
+                    writer.append(",,,,");
+                }
+
+                // Always append product and quantity
+                writer.append(product).append(",")
+                        .append(quantity).append("\n");
+            }
+
+            totalRevenue += groupTotalAmount;
         }
 
-        writer.append("\nTotal Revenue: , , , ").append(String.valueOf(totalRevenue)).append("\n");
+        writer.append("\nTotal Revenue: , , , , ").append(String.valueOf(totalRevenue)).append("\n");
         return writer.toString();
     }
 
