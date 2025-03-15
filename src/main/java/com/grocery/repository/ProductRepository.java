@@ -41,7 +41,7 @@ public interface ProductRepository extends JpaRepository<Product, Long> {
         FROM product p
         LEFT JOIN product_variant v ON p.product_id = v.product_id
         WHERE p.is_deleted = false
-        AND v.is_deleted = false
+        AND (v.is_deleted = false OR v.variant_id IS NULL)
         AND MATCH(p.name, p.category) AGAINST(:searchTerm IN BOOLEAN MODE)
         """,
             nativeQuery = true)

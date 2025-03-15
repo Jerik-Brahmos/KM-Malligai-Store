@@ -68,9 +68,12 @@ public class ProductService {
 
         List<Object[]> results = productRepository.searchProductsWithVariants(searchTerm);
 
-        // Group products manually to avoid duplicate entries
-        Map<Long, ProductDTO> productMap = new HashMap<>();
+        if (results.isEmpty()) {
+            return new PageImpl<>(Collections.emptyList());
+        }
 
+        // Map results
+        Map<Long, ProductDTO> productMap = new HashMap<>();
         for (Object[] row : results) {
             Long productId = ((Number) row[0]).longValue();
             String name = (String) row[1];
@@ -80,16 +83,13 @@ public class ProductService {
             String grams = row[5] != null ? (String) row[5] : null;
             Double price = row[6] != null ? ((Number) row[6]).doubleValue() : null;
 
-            // Create a new product entry if it doesn't exist
             productMap.putIfAbsent(productId, new ProductDTO(productId, name, category, imageUrl, new ArrayList<>()));
 
-            // Add variant to the product if it exists
             if (variantId != null) {
                 productMap.get(productId).getVariants().add(new ProductVariantResponse(variantId, grams, price));
             }
         }
 
-        // Convert map to list and apply pagination
         List<ProductDTO> productDTOList = new ArrayList<>(productMap.values());
 
         int start = Math.min(page * size, productDTOList.size());
@@ -97,7 +97,6 @@ public class ProductService {
 
         return new PageImpl<>(productDTOList.subList(start, end), PageRequest.of(page, size), productDTOList.size());
     }
-
 
 
     // Get a product by ID with caching

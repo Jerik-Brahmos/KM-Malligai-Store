@@ -91,16 +91,14 @@ public class ProductController {
     }
 
 
-    @GetMapping("/search/{searchTerm}")
+    @GetMapping("/search")
     public ResponseEntity<Page<ProductDTO>> searchProducts(
-            @PathVariable String searchTerm,
+            @RequestParam String searchTerm,
             @RequestParam(defaultValue = "0") int page,
             @RequestParam(defaultValue = "10") int size) {
 
         Page<ProductDTO> productDTOs = productService.searchProductsWithVariants(searchTerm, page, size);
-        return productDTOs.isEmpty()
-                ? ResponseEntity.status(HttpStatus.NO_CONTENT).build()
-                : ResponseEntity.ok(productDTOs);
+        return ResponseEntity.ok(productDTOs);
     }
 
 
