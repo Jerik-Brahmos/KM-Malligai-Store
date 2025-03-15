@@ -2,7 +2,6 @@ package com.grocery.service;
 
 import com.grocery.model.Discounts;
 import com.grocery.repository.DiscountRepository;
-import com.grocery.repository.DiscountsRepository;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.scheduling.annotation.Scheduled;
 import org.springframework.stereotype.Service;

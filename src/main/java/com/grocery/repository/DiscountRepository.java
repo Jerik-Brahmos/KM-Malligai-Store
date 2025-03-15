@@ -3,10 +3,12 @@ package com.grocery.repository;
 import com.grocery.model.Discounts;
 import org.springframework.data.jpa.repository.JpaRepository;
 import org.springframework.data.jpa.repository.Query;
+import org.springframework.stereotype.Repository;
 
 import java.util.List;
 import java.util.Optional;
 
+@Repository
 public interface DiscountRepository extends JpaRepository<Discounts, Integer> {
     Optional<Discounts> findByCode(String code);
 
@@ -20,5 +22,8 @@ public interface DiscountRepository extends JpaRepository<Discounts, Integer> {
     // New method to filter discounts by status
     @Query("SELECT d FROM Discounts d WHERE LOWER(d.status) = LOWER(:status)")
     List<Discounts> findByStatus(String status);
+
+    boolean existsByCode(String code);
+
 
 }

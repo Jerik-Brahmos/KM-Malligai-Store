@@ -7,16 +7,21 @@ import lombok.*;
 @Data
 @NoArgsConstructor
 @AllArgsConstructor
-@Table(name = "discounts")
+@Table(name = "discounts", uniqueConstraints = {@UniqueConstraint(columnNames = "code")})
 public class Discounts {
     @Id
     @GeneratedValue(strategy = GenerationType.IDENTITY)
     private Integer discountId;
+
+    @Column(unique = true, nullable = false) // Ensuring unique discount codes
     private String code;
-    private Double discountPercentage; // For percentage-based discounts
-    private Double fixedDiscount; // For fixed value discounts
+
+    private Double discountPercentage;
+    private Double fixedDiscount;
     private String expiryDate;
     private String status;
+
+
 
     public Integer getDiscountId() {
         return discountId;

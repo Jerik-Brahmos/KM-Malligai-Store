@@ -102,7 +102,7 @@ public class ProductController {
     }
 
 
-    @PostMapping
+    @PostMapping("/products")
     public ResponseEntity<Product> createProduct(
             @RequestParam("name") String name,
             @RequestParam("category") String category,
@@ -110,13 +110,26 @@ public class ProductController {
             @RequestParam("grams") List<String> gramsList,
             @RequestParam("prices") List<Double> priceList) throws IOException {
 
-        String imageUrl = null;
-        if (file != null && !file.isEmpty()) {
-            imageUrl = imageService.uploadImage(file.getBytes(), file.getOriginalFilename());
-        }
+        try {
+            String imageUrl = null;
+            if (file != null && !file.isEmpty()) {
+                // Validate file size before processing (optional additional check)
+                if (file.getSize() > 10 * 1024 * 1024) { // 10MB in bytes
+                    return ResponseEntity
+                            .status(HttpStatus.PAYLOAD_TOO_LARGE)
+                            .body(null);
+                }
+                imageUrl = imageService.uploadImage(file.getBytes(), file.getOriginalFilename());
+            }
 
-        Product createdProduct = productService.createProduct(name, category, imageUrl, gramsList, priceList);
-        return ResponseEntity.status(HttpStatus.CREATED).body(createdProduct);
+            Product createdProduct = productService.createProduct(name, category, imageUrl, gramsList, priceList);
+            return ResponseEntity.status(HttpStatus.CREATED).body(createdProduct);
+
+        } catch (IOException e) {
+            return ResponseEntity
+                    .status(HttpStatus.INTERNAL_SERVER_ERROR)
+                    .body(null);
+        }
     }
 
     @PutMapping("/{id}")

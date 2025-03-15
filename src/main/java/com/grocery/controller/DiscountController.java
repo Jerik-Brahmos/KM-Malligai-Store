@@ -59,17 +59,26 @@ public class DiscountController {
         Optional<Discounts> existingDiscount = discountRepository.findById(id);
         if (existingDiscount.isPresent()) {
             Discounts discount = existingDiscount.get();
+
+            // Check if the new code already exists (excluding the current discount)
+            if (!discount.getCode().equals(discountDetails.getCode()) &&
+                    discountRepository.existsByCode(discountDetails.getCode())) {
+                return ResponseEntity.status(HttpStatus.BAD_REQUEST).body("Discount code already exists!");
+            }
+
             discount.setCode(discountDetails.getCode());
             discount.setDiscountPercentage(discountDetails.getDiscountPercentage());
             discount.setExpiryDate(discountDetails.getExpiryDate());
             discount.setFixedDiscount(discountDetails.getFixedDiscount());
             discount.setStatus(discountDetails.getStatus());
             discountRepository.save(discount);
+
             return ResponseEntity.ok(discount);
         } else {
-            return ResponseEntity.status(404).body("Discount not found.");
+            return ResponseEntity.status(HttpStatus.NOT_FOUND).body("Discount not found.");
         }
     }
+
 
     // Delete discount by id
     @DeleteMapping("/{id}")
@@ -85,9 +94,14 @@ public class DiscountController {
 
     @PostMapping("/add_discount")
     public ResponseEntity<?> addDiscount(@RequestBody Discounts discount) {
+        if (discountRepository.existsByCode(discount.getCode())) {
+            return ResponseEntity.status(HttpStatus.BAD_REQUEST).body("Discount code already exists!");
+        }
+
         Discounts savedDiscount = discountRepository.save(discount);
         return ResponseEntity.ok(savedDiscount);
     }
+
 
     // Fetch discounts by status
     @GetMapping("/filter-by-status")
